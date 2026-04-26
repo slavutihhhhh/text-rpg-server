@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RPG</title>
+</head>
+<body>
+
+<h2>Онлайн RPG</h2>
+
+<input id="name" placeholder="Твій нік">
+<button onclick="join()">Увійти</button>
+
+<div id="game" style="display:none">
+  <p id="stats"></p>
+
+  <button onclick="fight()">⚔️ Бій</button>
+
+  <div id="log"></div>
+
+  <h3>Чат</h3>
+  <div id="chat"></div>
+  <input id="msg">
+  <button onclick="send()">Відправити</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="game.js"></script>
+
+</body>
+</html>
