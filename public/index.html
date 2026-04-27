@@ -3,96 +3,103 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Загублена Земля</title>
+  <title>Cult of Flesh: Ascension</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <div class="app">
     <header class="hero">
-      <p class="eyebrow">Текстова RPG</p>
-      <h1>⚔️ Загублена Земля</h1>
-      <p class="subtitle">Досліджуй світ, виконуй квести, торгуй у таборі та виживай у небезпечних землях.</p>
+      <p class="eyebrow">Dark Horror Cult RPG</p>
+      <h1>🕯️ Cult of Flesh: Ascension</h1>
+      <p class="subtitle">
+        Ти починаєш як служитель Великої Матері Плоті. Але кожен ритуал наближає тебе до питання:
+        служити божеству — чи стати ним?
+      </p>
     </header>
 
     <main class="layout">
-      <section class="panel" id="loginPanel">
-        <h2>Створення героя</h2>
-        <p>Введи імʼя персонажа:</p>
+      <section class="panel" id="startPanel">
+        <h2>Пробудження</h2>
+        <p>Назви імʼя того, хто переступить межу людського.</p>
+
         <div class="row">
-          <input id="nameInput" type="text" placeholder="Імʼя героя" />
-          <button id="startBtn">Почати гру</button>
+          <input id="nameInput" type="text" placeholder="Імʼя адепта" />
+          <button id="startBtn">Увійти в культ</button>
         </div>
       </section>
 
       <section class="panel hidden" id="gamePanel">
         <div class="topline">
           <div>
-            <h2 id="heroName">Герой</h2>
-            <p id="heroStatus">Новачок</p>
+            <h2 id="cultistName">Адепт</h2>
+            <p id="ascensionTitle">Немічний послідовник</p>
           </div>
           <button id="saveBtn">💾 Зберегти</button>
         </div>
 
         <div class="stats-grid">
-          <div class="stat"><span>❤️ HP</span><strong id="heroHp">100/100</strong></div>
-          <div class="stat"><span>⭐ Рівень</span><strong id="heroLevel">1</strong></div>
-          <div class="stat"><span>✨ XP</span><strong id="heroXp">0/100</strong></div>
-          <div class="stat"><span>🪙 Золото</span><strong id="heroGold">0</strong></div>
+          <div class="stat"><span>❤️ Тіло</span><strong id="bodyStat">100/100</strong></div>
+          <div class="stat"><span>🧠 Розум</span><strong id="mindStat">100/100</strong></div>
+          <div class="stat"><span>👁️ Божественність</span><strong id="divinityStat">0</strong></div>
+          <div class="stat"><span>⚖️ Людяність</span><strong id="humanityStat">100</strong></div>
+          <div class="stat"><span>🩸 Есенція</span><strong id="essenceStat">0</strong></div>
+          <div class="stat"><span>👥 Послідовники</span><strong id="followersStat">3</strong></div>
+          <div class="stat"><span>🧍 Жертви</span><strong id="offeringsStat">0</strong></div>
+          <div class="stat"><span>📖 Ранг</span><strong id="rankStat">I</strong></div>
         </div>
 
         <div class="location-card">
-          <h3 id="locationName">Старий Табір</h3>
+          <h3 id="locationName">Підземне Святилище</h3>
           <p id="locationText"></p>
           <div class="actions" id="locationButtons"></div>
         </div>
 
         <div class="gameplay-grid">
           <div class="mini-card">
-            <h3>🧙 NPC</h3>
-            <p id="npcText">У цій локації нікого немає.</p>
-            <div class="actions" id="npcButtons"></div>
+            <h3>🩸 Ритуали</h3>
+            <p id="ritualText"></p>
+            <div class="actions" id="ritualButtons"></div>
           </div>
 
           <div class="mini-card">
-            <h3>🏪 Магазин</h3>
-            <p id="shopText">Магазин доступний тільки у Старому Таборі.</p>
-            <div class="actions" id="shopButtons"></div>
+            <h3>📖 Заклинання</h3>
+            <p id="spellText"></p>
+            <div class="actions" id="spellButtons"></div>
+          </div>
+
+          <div class="mini-card">
+            <h3>🧬 Мутації</h3>
+            <div id="mutationText">Тіло ще зберігає людську форму.</div>
+          </div>
+
+          <div class="mini-card">
+            <h3>🕯️ Культ</h3>
+            <p id="cultText"></p>
+            <div class="actions" id="cultButtons"></div>
           </div>
         </div>
 
-        <div class="enemy-card">
-          <h3>Ворог</h3>
-          <p><strong id="enemyName"></strong></p>
-          <div class="bar"><div class="bar-fill" id="enemyHpBar"></div></div>
-          <p id="enemyHp"></p>
-        </div>
-
-        <div class="actions">
-          <button id="attackBtn">⚔️ Атака</button>
-          <button id="heavyAttackBtn">🔥 Сильний удар</button>
-          <button id="usePotionBtn">🧪 Випити зілля</button>
-          <button id="restBtn">🌙 Відпочити</button>
-          <button id="exploreBtn">🎲 Дослідити</button>
-          <button id="newEnemyBtn">🔁 Новий ворог</button>
+        <div class="actions main-actions">
+          <button id="gatherBtn">🌑 Вийти на пошуки</button>
+          <button id="preachBtn">🗣️ Проповідувати</button>
+          <button id="meditateBtn">👁️ Медитувати</button>
+          <button id="restBtn">🕯️ Відновитись</button>
         </div>
       </section>
 
       <aside class="panel side-panel">
-        <h2>📜 Активний квест</h2>
-        <div id="questText">Квестів немає</div>
+        <h2>🌒 Шлях Вознесіння</h2>
+        <div id="pathText"></div>
 
-        <h2>🎒 Інвентар</h2>
-        <div id="inventoryText">Порожньо</div>
+        <h2>📜 Хроніка культу</h2>
+        <div class="log" id="logBox"></div>
 
-        <h2>📜 Логи</h2>
-        <div class="log" id="battleLog"></div>
-
-        <h2>💬 Чат</h2>
+        <h2>💬 Шепіт</h2>
         <div class="row">
-          <input id="chatInput" type="text" placeholder="Написати..." />
-          <button id="chatBtn">Send</button>
+          <input id="whisperInput" type="text" placeholder="Написати шепіт..." />
+          <button id="whisperBtn">Send</button>
         </div>
-        <div class="chat" id="chatBox"></div>
+        <div class="chat" id="whisperBox"></div>
       </aside>
     </main>
   </div>
