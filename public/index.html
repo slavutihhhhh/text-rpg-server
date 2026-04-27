@@ -1,60 +1,93 @@
-<header>
-  <h1>⚔️ Загублена Земля</h1>
-  <p>Онлайн RPG</p>
-</header>
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Загублена Земля</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Онлайн текстова RPG</p>
+        <h1>⚔️ Загублена Земля</h1>
+        <p class="subtitle">Створи героя, бийся з ворогами, збирай золото і відкривай світ.</p>
+      </div>
+    </header>
 
-<section id="login" class="card">
-  <h2>Вхід</h2>
-  <input id="nameInput" placeholder="Введи нік" />
-  <button onclick="joinGame()">Увійти</button>
-</section>
+    <main class="layout">
+      <section class="panel login-panel" id="loginPanel">
+        <h2>Вхід у гру</h2>
+        <p>Введи імʼя героя:</p>
+        <div class="row">
+          <input id="nameInput" type="text" placeholder="Наприклад: Славута" />
+          <button id="startBtn">Почати</button>
+        </div>
+      </section>
 
-<main id="game" class="hidden">
+      <section class="panel hero-panel hidden" id="gamePanel">
+        <div class="topline">
+          <h2 id="heroName">Герой</h2>
+          <span class="badge" id="locationName">Старий Табір</span>
+        </div>
 
-  <div class="grid">
+        <div class="stats-grid">
+          <div class="stat">
+            <span>❤️ HP</span>
+            <strong id="heroHp">100/100</strong>
+          </div>
+          <div class="stat">
+            <span>⭐ Рівень</span>
+            <strong id="heroLevel">1</strong>
+          </div>
+          <div class="stat">
+            <span>✨ XP</span>
+            <strong id="heroXp">0/100</strong>
+          </div>
+          <div class="stat">
+            <span>🪙 Золото</span>
+            <strong id="heroGold">0</strong>
+          </div>
+        </div>
 
-    <div class="card">
-      <h2>👤 Персонаж</h2>
-      <div id="stats"></div>
-      <button onclick="startFight()">⚔️ Бій</button>
-      <button onclick="attack()">🗡️ Атака</button>
-    </div>
+        <div class="enemy-card" id="enemyCard">
+          <h3>🐺 Ворог</h3>
+          <p><strong id="enemyName">Лісовий вовк</strong></p>
+          <div class="bar">
+            <div class="bar-fill" id="enemyHpBar"></div>
+          </div>
+          <p id="enemyHp">40/40 HP</p>
+        </div>
 
-    <div class="card">
-      <h2>🌍 Локації</h2>
-      <div id="locations"></div>
-    </div>
+        <div class="actions">
+          <button id="attackBtn">⚔️ Атака</button>
+          <button id="heavyAttackBtn">🔥 Сильний удар</button>
+          <button id="healBtn">🧪 Відпочити</button>
+          <button id="newEnemyBtn">🔁 Новий ворог</button>
+        </div>
+      </section>
 
+      <aside class="panel side-panel">
+        <h2>🌍 Локації</h2>
+        <p id="locationText">Старий табір біля темного лісу. Звідси починається твоя історія.</p>
+
+        <h2>🎒 Інвентар</h2>
+        <p id="inventoryText">Порожньо</p>
+
+        <h2>📜 Логи бою</h2>
+        <div class="log" id="battleLog"></div>
+
+        <h2>💬 Чат</h2>
+        <div class="row">
+          <input id="chatInput" type="text" placeholder="Написати..." />
+          <button id="chatBtn">Send</button>
+        </div>
+        <div class="chat" id="chatBox"></div>
+      </aside>
+    </main>
   </div>
 
-  <div class="grid">
-
-    <div class="card">
-      <h2>🎒 Інвентар</h2>
-      <div id="inventory"></div>
-    </div>
-
-    <div class="card">
-      <h2>🛡️ Екіпіровка</h2>
-      <div id="equipment"></div>
-    </div>
-
-  </div>
-
-  <div class="grid">
-
-    <div class="card">
-      <h2>📜 Логи бою</h2>
-      <div id="battleLog"></div>
-    </div>
-
-    <div class="card">
-      <h2>💬 Чат</h2>
-      <div id="chat"></div>
-      <input id="chatInput" placeholder="Написати..." />
-      <button onclick="sendChat()">Send</button>
-    </div>
-
-  </div>
-
-</main>
+  <script src="./game.js"></script>
+</body>
+</html>
