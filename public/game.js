@@ -1,29 +1,37 @@
-const SAVE_KEY = "lost_land_save_v2";
+const SAVE_KEY = "lost_land_save_v3";
 
 const locations = {
   camp: {
     name: "Старий Табір",
-    text: "Безпечне місце біля темного лісу. Тут можна перевести подих.",
-    enemies: ["Лісовий вовк", "Голодний пацюк"],
-    travel: ["forest", "road"]
+    text: "Безпечне місце біля темного лісу. Тут є вартовий, магазин і місце для відпочинку.",
+    enemies: ["Голодний пацюк", "Лісовий вовк"],
+    travel: ["forest", "road"],
+    npc: "Старий Вартовий",
+    shop: true
   },
   forest: {
     name: "Темний Ліс",
-    text: "Мокрі дерева, туман і дивні звуки. Тут небезпечно, але є здобич.",
+    text: "Мокрі дерева, туман і дивні звуки. Саме тут вовки стали занадто сміливими.",
     enemies: ["Лісовий вовк", "Печерний павук", "Розбійник"],
-    travel: ["camp", "cave"]
+    travel: ["camp", "cave"],
+    npc: null,
+    shop: false
   },
   road: {
     name: "Північна Дорога",
     text: "Стара дорога до покинутих земель. Тут часто нападають розбійники.",
     enemies: ["Розбійник", "Бродячий пес"],
-    travel: ["camp", "cave"]
+    travel: ["camp", "cave"],
+    npc: null,
+    shop: false
   },
   cave: {
     name: "Покинута Печера",
     text: "Темна печера з холодним повітрям. Слабким героям тут не місце.",
     enemies: ["Печерний павук", "Камʼяний щур", "Старий упир"],
-    travel: ["forest", "road"]
+    travel: ["forest", "road"],
+    npc: null,
+    shop: false
   }
 };
 
@@ -37,6 +45,21 @@ const enemyTypes = {
   "Старий упир": { hp: 95, damage: 16, xp: 110, gold: 35 }
 };
 
+const questTemplate = {
+  id: "forest_wolves",
+  title: "Проблема темного лісу",
+  description: "Старий Вартовий просить перемогти 3 лісових вовків у Темному Лісі.",
+  targetEnemy: "Лісовий вовк",
+  required: 3,
+  progress: 0,
+  status: "not_started",
+  reward: {
+    gold: 50,
+    xp: 80,
+    items: ["Мале зілля", "Мале зілля"]
+  }
+};
+
 let player = {
   name: "",
   hp: 100,
@@ -46,7 +69,8 @@ let player = {
   xpToNext: 100,
   gold: 0,
   location: "camp",
-  inventory: ["Мале зілля"]
+  inventory: ["Мале зілля"],
+  quest: structuredClone(questTemplate)
 };
 
 let enemy = createEnemy();
@@ -70,6 +94,14 @@ const locationName = $("locationName");
 const locationText = $("locationText");
 const locationButtons = $("locationButtons");
 
+const npcText = $("npcText");
+const npcButtons = $("npcButtons");
+const shopText = $("shopText");
+const shopButtons = $("shopButtons");
+
+const questText = $("questText");
+const inventoryText = $("inventoryText");
+
 const enemyName = $("enemyName");
 const enemyHp = $("enemyHp");
 const enemyHpBar = $("enemyHpBar");
@@ -78,9 +110,9 @@ const attackBtn = $("attackBtn");
 const heavyAttackBtn = $("heavyAttackBtn");
 const usePotionBtn = $("usePotionBtn");
 const restBtn = $("restBtn");
+const exploreBtn = $("exploreBtn");
 const newEnemyBtn = $("newEnemyBtn");
 
-const inventoryText = $("inventoryText");
 const battleLog = $("battleLog");
 
 const chatInput = $("chatInput");
@@ -93,6 +125,7 @@ attackBtn.addEventListener("click", () => playerAttack("normal"));
 heavyAttackBtn.addEventListener("click", () => playerAttack("heavy"));
 usePotionBtn.addEventListener("click", usePotion);
 restBtn.addEventListener("click", rest);
+exploreBtn.addEventListener("click", exploreLocation);
 newEnemyBtn.addEventListener("click", spawnNewEnemy);
 chatBtn.addEventListener("click", sendChat);
 
@@ -132,7 +165,16 @@ function loadGameIfExists() {
 
   try {
     const data = JSON.parse(saved);
-    player = data.player || player;
+
+    player = {
+      ...player,
+      ...(data.player || {}),
+      quest: {
+        ...structuredClone(questTemplate),
+        ...((data.player && data.player.quest) || {})
+      }
+    };
+
     enemy = data.enemy || createEnemy();
 
     loginPanel.classList.add("hidden");
@@ -177,6 +219,11 @@ function travelTo(locationId) {
   enemy = createEnemy();
 
   addLog(`🧭 Ти перейшов у локацію: ${locations[locationId].name}.`);
+
+  if (Math.random() < 0.25 && player.location !== "camp") {
+    triggerTravelEvent();
+  }
+
   saveGame(false);
   render();
 }
@@ -192,11 +239,10 @@ function playerAttack(type) {
     return;
   }
 
-  let damage;
+  let damage = 0;
 
   if (type === "heavy") {
     if (Math.random() < 0.3) {
-      damage = 0;
       addLog("🔥 Сильний удар промахнувся!");
     } else {
       damage = random(16, 28) + player.level * 2;
@@ -227,7 +273,7 @@ function enemyAttack() {
     return;
   }
 
-  const damage = random(enemy.damage - 3, enemy.damage + 4);
+  const damage = random(Math.max(1, enemy.damage - 3), enemy.damage + 4);
   player.hp = Math.max(0, player.hp - damage);
 
   addLog(`🩸 ${enemy.name} завдає ${damage} шкоди.`);
@@ -243,17 +289,42 @@ function winBattle() {
 
   addLog(`🏆 ${enemy.name} переможений! +${enemy.xp} XP, +${enemy.gold} золота.`);
 
+  updateQuestProgress(enemy.name);
+  rollLoot();
+  checkLevelUp();
+}
+
+function updateQuestProgress(enemyName) {
+  const quest = player.quest;
+
+  if (
+    quest.status === "active" &&
+    enemyName === quest.targetEnemy &&
+    player.location === "forest"
+  ) {
+    quest.progress = Math.min(quest.required, quest.progress + 1);
+    addLog(`📜 Квест оновлено: ${quest.progress}/${quest.required} вовків.`);
+
+    if (quest.progress >= quest.required) {
+      quest.status = "ready";
+      addLog("✅ Квест виконано. Повернись до Старого Вартового за нагородою.");
+    }
+  }
+}
+
+function rollLoot() {
   const lootRoll = Math.random();
 
   if (lootRoll < 0.35) {
     player.inventory.push("Мале зілля");
     addLog("🎒 Здобич: Мале зілля.");
-  } else if (lootRoll < 0.45) {
+  } else if (lootRoll < 0.48) {
     player.inventory.push("Іржавий жетон");
     addLog("🎒 Здобич: Іржавий жетон.");
+  } else if (lootRoll < 0.55) {
+    player.inventory.push("Шкіра звіра");
+    addLog("🎒 Здобич: Шкіра звіра.");
   }
-
-  checkLevelUp();
 }
 
 function checkLevelUp() {
@@ -266,6 +337,81 @@ function checkLevelUp() {
 
     addLog(`⭐ Рівень підвищено! Тепер ти рівня ${player.level}. HP повністю відновлено.`);
   }
+}
+
+function acceptQuest() {
+  if (player.quest.status !== "not_started") return;
+
+  player.quest.status = "active";
+  player.quest.progress = 0;
+
+  addLog("📜 Квест прийнято: “Проблема темного лісу”.");
+  saveGame(false);
+  render();
+}
+
+function claimQuestReward() {
+  const quest = player.quest;
+
+  if (quest.status !== "ready") {
+    addLog("Старий Вартовий: Спершу виконай завдання.");
+    return;
+  }
+
+  player.gold += quest.reward.gold;
+  player.xp += quest.reward.xp;
+  player.inventory.push(...quest.reward.items);
+  quest.status = "completed";
+
+  addLog(`🎁 Квест завершено! +${quest.reward.gold} золота, +${quest.reward.xp} XP, зілля отримано.`);
+  checkLevelUp();
+  saveGame(false);
+  render();
+}
+
+function buyPotion() {
+  const price = 20;
+
+  if (!locations[player.location].shop) {
+    addLog("🏪 Тут немає магазину.");
+    return;
+  }
+
+  if (player.gold < price) {
+    addLog(`🏪 Недостатньо золота. Потрібно ${price}.`);
+    return;
+  }
+
+  player.gold -= price;
+  player.inventory.push("Мале зілля");
+
+  addLog("🏪 Куплено: Мале зілля за 20 золота.");
+  saveGame(false);
+  render();
+}
+
+function sellJunk() {
+  const junkItems = ["Іржавий жетон", "Шкіра звіра"];
+  let sold = 0;
+
+  player.inventory = player.inventory.filter((item) => {
+    if (junkItems.includes(item)) {
+      sold += item === "Іржавий жетон" ? 6 : 10;
+      return false;
+    }
+
+    return true;
+  });
+
+  if (sold === 0) {
+    addLog("🏪 Немає речей для продажу.");
+    return;
+  }
+
+  player.gold += sold;
+  addLog(`🏪 Продано трофеї на ${sold} золота.`);
+  saveGame(false);
+  render();
 }
 
 function usePotion() {
@@ -305,6 +451,48 @@ function rest() {
   render();
 }
 
+function exploreLocation() {
+  if (player.hp <= 0) {
+    addLog("💀 Ти не можеш досліджувати без сил.");
+    return;
+  }
+
+  const roll = Math.random();
+
+  if (roll < 0.28) {
+    const foundGold = random(5, 18);
+    player.gold += foundGold;
+    addLog(`🎲 Ти знайшов схованку з ${foundGold} золотими.`);
+  } else if (roll < 0.48) {
+    player.inventory.push("Мале зілля");
+    addLog("🎲 Під каменем знайдено Мале зілля.");
+  } else if (roll < 0.72) {
+    enemy = createEnemy();
+    addLog(`🎲 Дослідження привело тебе до ворога: ${enemy.name}.`);
+  } else {
+    const damage = random(4, 12);
+    player.hp = Math.max(0, player.hp - damage);
+    addLog(`🎲 Пастка! Ти втратив ${damage} HP.`);
+  }
+
+  saveGame(false);
+  render();
+}
+
+function triggerTravelEvent() {
+  const roll = Math.random();
+
+  if (roll < 0.5) {
+    const gold = random(3, 12);
+    player.gold += gold;
+    addLog(`🧭 Дорогою ти знайшов ${gold} золота.`);
+  } else {
+    const damage = random(3, 9);
+    player.hp = Math.max(0, player.hp - damage);
+    addLog(`🧭 Дорогою ти потрапив у засідку і втратив ${damage} HP.`);
+  }
+}
+
 function spawnNewEnemy() {
   enemy = createEnemy();
   addLog(`👹 Новий ворог: ${enemy.name}.`);
@@ -337,35 +525,140 @@ function render() {
   locationName.textContent = currentLocation.name;
   locationText.textContent = currentLocation.text;
 
+  renderLocationButtons(currentLocation);
+  renderNpc(currentLocation);
+  renderShop(currentLocation);
+  renderQuest();
+  renderEnemy();
+  renderInventory();
+}
+
+function renderLocationButtons(currentLocation) {
   locationButtons.innerHTML = "";
+
   currentLocation.travel.forEach((locationId) => {
     const button = document.createElement("button");
     button.textContent = `🧭 ${locations[locationId].name}`;
     button.addEventListener("click", () => travelTo(locationId));
     locationButtons.appendChild(button);
   });
+}
 
+function renderNpc(currentLocation) {
+  npcButtons.innerHTML = "";
+
+  if (!currentLocation.npc) {
+    npcText.textContent = "У цій локації нікого немає.";
+    return;
+  }
+
+  npcText.textContent = `${currentLocation.npc}: “Темний Ліс став небезпечним. Нам потрібна допомога.”`;
+
+  if (player.quest.status === "not_started") {
+    const button = document.createElement("button");
+    button.textContent = "📜 Взяти квест";
+    button.addEventListener("click", acceptQuest);
+    npcButtons.appendChild(button);
+  }
+
+  if (player.quest.status === "ready") {
+    const button = document.createElement("button");
+    button.textContent = "🎁 Забрати нагороду";
+    button.addEventListener("click", claimQuestReward);
+    npcButtons.appendChild(button);
+  }
+
+  if (player.quest.status === "completed") {
+    npcText.textContent = `${currentLocation.npc}: “Ти добре послужив табору. Повертайся, коли зʼявляться нові проблеми.”`;
+  }
+}
+
+function renderShop(currentLocation) {
+  shopButtons.innerHTML = "";
+
+  if (!currentLocation.shop) {
+    shopText.textContent = "Магазин доступний тільки у Старому Таборі.";
+    return;
+  }
+
+  shopText.textContent = "Торговець продає зілля і скуповує трофеї.";
+
+  const buyButton = document.createElement("button");
+  buyButton.textContent = "🧪 Купити зілля — 20 золота";
+  buyButton.addEventListener("click", buyPotion);
+
+  const sellButton = document.createElement("button");
+  sellButton.textContent = "💰 Продати трофеї";
+  sellButton.addEventListener("click", sellJunk);
+
+  shopButtons.appendChild(buyButton);
+  shopButtons.appendChild(sellButton);
+}
+
+function renderQuest() {
+  const quest = player.quest;
+
+  if (quest.status === "not_started") {
+    questText.innerHTML = "Квестів немає. Поговори зі Старим Вартовим у Старому Таборі.";
+    return;
+  }
+
+  if (quest.status === "active") {
+    questText.innerHTML = `
+      <p><strong>${quest.title}</strong></p>
+      <p>${quest.description}</p>
+      <p class="quest-warn">Прогрес: ${quest.progress}/${quest.required}</p>
+    `;
+    return;
+  }
+
+  if (quest.status === "ready") {
+    questText.innerHTML = `
+      <p><strong>${quest.title}</strong></p>
+      <p class="quest-good">Завдання виконано. Повернись до Старого Вартового.</p>
+    `;
+    return;
+  }
+
+  if (quest.status === "completed") {
+    questText.innerHTML = `
+      <p><strong>${quest.title}</strong></p>
+      <p class="quest-good">Квест завершено.</p>
+    `;
+  }
+}
+
+function renderEnemy() {
   enemyName.textContent = enemy.name;
   enemyHp.textContent = `${enemy.hp}/${enemy.maxHp} HP`;
 
   const hpPercent = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
   enemyHpBar.style.width = `${hpPercent}%`;
+}
 
+function renderInventory() {
   inventoryText.innerHTML = "";
 
   if (!player.inventory.length) {
     inventoryText.textContent = "Порожньо";
-  } else {
-    const list = document.createElement("ul");
-
-    player.inventory.forEach((item) => {
-      const li = document.createElement("li");
-      li.textContent = item;
-      list.appendChild(li);
-    });
-
-    inventoryText.appendChild(list);
+    return;
   }
+
+  const counts = {};
+
+  player.inventory.forEach((item) => {
+    counts[item] = (counts[item] || 0) + 1;
+  });
+
+  const list = document.createElement("ul");
+
+  Object.entries(counts).forEach(([item, count]) => {
+    const li = document.createElement("li");
+    li.textContent = count > 1 ? `${item} x${count}` : item;
+    list.appendChild(li);
+  });
+
+  inventoryText.appendChild(list);
 }
 
 function getHeroStatus() {
