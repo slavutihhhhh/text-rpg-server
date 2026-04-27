@@ -11,7 +11,7 @@
     <header class="hero">
       <p class="eyebrow">Текстова RPG</p>
       <h1>⚔️ Загублена Земля</h1>
-      <p class="subtitle">Подорожуй локаціями, бийся з ворогами, збирай речі та прокачуй героя.</p>
+      <p class="subtitle">Досліджуй світ, виконуй квести, торгуй у таборі та виживай у небезпечних землях.</p>
     </header>
 
     <main class="layout">
@@ -46,6 +46,20 @@
           <div class="actions" id="locationButtons"></div>
         </div>
 
+        <div class="gameplay-grid">
+          <div class="mini-card">
+            <h3>🧙 NPC</h3>
+            <p id="npcText">У цій локації нікого немає.</p>
+            <div class="actions" id="npcButtons"></div>
+          </div>
+
+          <div class="mini-card">
+            <h3>🏪 Магазин</h3>
+            <p id="shopText">Магазин доступний тільки у Старому Таборі.</p>
+            <div class="actions" id="shopButtons"></div>
+          </div>
+        </div>
+
         <div class="enemy-card">
           <h3>Ворог</h3>
           <p><strong id="enemyName"></strong></p>
@@ -58,11 +72,15 @@
           <button id="heavyAttackBtn">🔥 Сильний удар</button>
           <button id="usePotionBtn">🧪 Випити зілля</button>
           <button id="restBtn">🌙 Відпочити</button>
+          <button id="exploreBtn">🎲 Дослідити</button>
           <button id="newEnemyBtn">🔁 Новий ворог</button>
         </div>
       </section>
 
       <aside class="panel side-panel">
+        <h2>📜 Активний квест</h2>
+        <div id="questText">Квестів немає</div>
+
         <h2>🎒 Інвентар</h2>
         <div id="inventoryText">Порожньо</div>
 
