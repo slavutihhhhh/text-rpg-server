@@ -9,73 +9,64 @@
 <body>
   <div class="app">
     <header class="hero">
-      <div>
-        <p class="eyebrow">Онлайн текстова RPG</p>
-        <h1>⚔️ Загублена Земля</h1>
-        <p class="subtitle">Створи героя, бийся з ворогами, збирай золото і відкривай світ.</p>
-      </div>
+      <p class="eyebrow">Текстова RPG</p>
+      <h1>⚔️ Загублена Земля</h1>
+      <p class="subtitle">Подорожуй локаціями, бийся з ворогами, збирай речі та прокачуй героя.</p>
     </header>
 
     <main class="layout">
-      <section class="panel login-panel" id="loginPanel">
-        <h2>Вхід у гру</h2>
-        <p>Введи імʼя героя:</p>
+      <section class="panel" id="loginPanel">
+        <h2>Створення героя</h2>
+        <p>Введи імʼя персонажа:</p>
         <div class="row">
-          <input id="nameInput" type="text" placeholder="Наприклад: Славута" />
-          <button id="startBtn">Почати</button>
+          <input id="nameInput" type="text" placeholder="Імʼя героя" />
+          <button id="startBtn">Почати гру</button>
         </div>
       </section>
 
-      <section class="panel hero-panel hidden" id="gamePanel">
+      <section class="panel hidden" id="gamePanel">
         <div class="topline">
-          <h2 id="heroName">Герой</h2>
-          <span class="badge" id="locationName">Старий Табір</span>
+          <div>
+            <h2 id="heroName">Герой</h2>
+            <p id="heroStatus">Новачок</p>
+          </div>
+          <button id="saveBtn">💾 Зберегти</button>
         </div>
 
         <div class="stats-grid">
-          <div class="stat">
-            <span>❤️ HP</span>
-            <strong id="heroHp">100/100</strong>
-          </div>
-          <div class="stat">
-            <span>⭐ Рівень</span>
-            <strong id="heroLevel">1</strong>
-          </div>
-          <div class="stat">
-            <span>✨ XP</span>
-            <strong id="heroXp">0/100</strong>
-          </div>
-          <div class="stat">
-            <span>🪙 Золото</span>
-            <strong id="heroGold">0</strong>
-          </div>
+          <div class="stat"><span>❤️ HP</span><strong id="heroHp">100/100</strong></div>
+          <div class="stat"><span>⭐ Рівень</span><strong id="heroLevel">1</strong></div>
+          <div class="stat"><span>✨ XP</span><strong id="heroXp">0/100</strong></div>
+          <div class="stat"><span>🪙 Золото</span><strong id="heroGold">0</strong></div>
         </div>
 
-        <div class="enemy-card" id="enemyCard">
-          <h3>🐺 Ворог</h3>
-          <p><strong id="enemyName">Лісовий вовк</strong></p>
-          <div class="bar">
-            <div class="bar-fill" id="enemyHpBar"></div>
-          </div>
-          <p id="enemyHp">40/40 HP</p>
+        <div class="location-card">
+          <h3 id="locationName">Старий Табір</h3>
+          <p id="locationText"></p>
+          <div class="actions" id="locationButtons"></div>
+        </div>
+
+        <div class="enemy-card">
+          <h3>Ворог</h3>
+          <p><strong id="enemyName"></strong></p>
+          <div class="bar"><div class="bar-fill" id="enemyHpBar"></div></div>
+          <p id="enemyHp"></p>
         </div>
 
         <div class="actions">
           <button id="attackBtn">⚔️ Атака</button>
           <button id="heavyAttackBtn">🔥 Сильний удар</button>
-          <button id="healBtn">🧪 Відпочити</button>
+          <button id="usePotionBtn">🧪 Випити зілля</button>
+          <button id="restBtn">🌙 Відпочити</button>
           <button id="newEnemyBtn">🔁 Новий ворог</button>
         </div>
       </section>
 
       <aside class="panel side-panel">
-        <h2>🌍 Локації</h2>
-        <p id="locationText">Старий табір біля темного лісу. Звідси починається твоя історія.</p>
-
         <h2>🎒 Інвентар</h2>
-        <p id="inventoryText">Порожньо</p>
+        <div id="inventoryText">Порожньо</div>
 
-        <h2>📜 Логи бою</h2>
+        <h2>📜 Логи</h2>
         <div class="log" id="battleLog"></div>
 
         <h2>💬 Чат</h2>
