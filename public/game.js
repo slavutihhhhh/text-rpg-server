@@ -1,1 +1,204 @@
-const socket=io();let player=null;let locations={};function el(id){return document.getElementById(id)}function joinGame(){const name=el("nameInput").value.trim();if(!name){alert("Введи нік");return}socket.emit("join",name);el("login").classList.add("hidden");el("game").classList.remove("hidden")}function startFight(){socket.emit("startFight")}function attack(){socket.emit("attack")}function changeLocation(key){socket.emit("changeLocation",key)}function equip(id){socket.emit("equip",id)}function useItem(id){socket.emit("useItem",id)}function sell(id){socket.emit("sell",id)}function upgrade(slot){socket.emit("upgrade",slot)}function buy(name){socket.emit("buy",name)}function sendChat(){const input=el("chatInput");socket.emit("chat",input.value);input.value=""}function itemLabel(item){const lvl=item.level>0?` +${item.level}`:"";const stat=item.type==="weapon"?`урон ${item.damage+item.level*2}`:item.type==="armor"?`захист ${item.armor+item.level}`:item.type==="consumable"?`HP +${item.heal}`:"матеріал";return `${item.name}${lvl} — ${stat} — ${item.rarity}`}function renderPlayer(){if(!player)return;const hpPercent=Math.max(0,Math.min(100,(player.hp/player.maxHp)*100));el("stats").innerHTML=`<p><b>${player.name}</b></p><div class="hpbar"><div class="hpfill" style="width:${hpPercent}%"></div></div><p>❤️ HP: ${player.hp}/${player.maxHp}</p><p>⭐ Рівень: ${player.level}</p><p>✨ XP: ${player.xp}/${player.xpNeed}</p><p>💰 Золото: ${player.gold}</p><p>📍 Локація: ${player.locationName}</p><p>🗡️ Урон: ${player.stats.damageMin}-${player.stats.damageMax}</p><p>🧱 Броня: ${player.stats.armor}</p>${player.enemy?`<p>👹 Ворог: ${player.enemy.name} — ${player.enemy.hp}/${player.enemy.maxHp}</p>`:`<p>👹 Ворога немає</p>`}`;const weapon=player.equipment.weapon;const armor=player.equipment.armor;el("equipment").innerHTML=`<div class="item">⚔️ Зброя: ${weapon?itemLabel(weapon):"Немає"}</div><div class="item">🛡️ Броня: ${armor?itemLabel(armor):"Немає"}</div>`;if(!player.inventory.length){el("inventory").innerHTML=`<p class="small">Сумка порожня</p>`}else{el("inventory").innerHTML=player.inventory.map(item=>{const actions=[];if(item.type==="weapon"||item.type==="armor")actions.push(`<button class="good" onclick="equip('${item.id}')">Одягнути</button>`);if(item.type==="consumable")actions.push(`<button class="good" onclick="useItem('${item.id}')">Використати</button>`);actions.push(`<button class="danger" onclick="sell('${item.id}')">Продати</button>`);return `<div class="item"><b>${itemLabel(item)}</b><div class="small">Продаж: ${Math.max(1,Math.floor((item.price+item.level*10)/2))} зол.</div><div>${actions.join("")}</div></div>`}).join("")}}function renderLocations(){el("locations").innerHTML=Object.entries(locations).map(([key,loc])=>{const locked=player&&player.level<loc.minLevel;return `<div class="location"><b>${loc.name}</b><div class="small">Доступ з рівня ${loc.minLevel}</div><button ${locked?"disabled":""} onclick="changeLocation('${key}')">${locked?"Закрито":"Перейти"}</button></div>`}).join("")}socket.on("player",data=>{player=data;renderPlayer();renderLocations()});socket.on("locations",data=>{locations=data;renderLocations()});socket.on("battle",log=>{el("battleLog").innerHTML=log.map(line=>`<div class="logLine">${line}</div>`).join("")+el("battleLog").innerHTML});socket.on("system",msg=>{el("battleLog").innerHTML=`<div class="logLine">${msg}</div>`+el("battleLog").innerHTML});socket.on("chat",msg=>{const text=typeof msg==="string"?msg:`[${msg.location||""}] ${msg.from}: ${msg.text}`;el("chat").innerHTML+=`<div class="chatLine">${text}</div>`;el("chat").scrollTop=el("chat").scrollHeight});socket.on("online",list=>{el("online").innerHTML=list.map(p=>{const loc=locations[p.location]?.name||p.location;return `<div class="onlineLine">${p.name} — ${loc}</div>`}).join("")});
+const player = {
+  name: "",
+  hp: 100,
+  maxHp: 100,
+  level: 1,
+  xp: 0,
+  xpToNext: 100,
+  gold: 0,
+  inventory: []
+};
+
+let enemy = createEnemy();
+
+const loginPanel = document.getElementById("loginPanel");
+const gamePanel = document.getElementById("gamePanel");
+const nameInput = document.getElementById("nameInput");
+const startBtn = document.getElementById("startBtn");
+
+const heroName = document.getElementById("heroName");
+const heroHp = document.getElementById("heroHp");
+const heroLevel = document.getElementById("heroLevel");
+const heroXp = document.getElementById("heroXp");
+const heroGold = document.getElementById("heroGold");
+
+const enemyName = document.getElementById("enemyName");
+const enemyHp = document.getElementById("enemyHp");
+const enemyHpBar = document.getElementById("enemyHpBar");
+
+const attackBtn = document.getElementById("attackBtn");
+const heavyAttackBtn = document.getElementById("heavyAttackBtn");
+const healBtn = document.getElementById("healBtn");
+const newEnemyBtn = document.getElementById("newEnemyBtn");
+
+const battleLog = document.getElementById("battleLog");
+const inventoryText = document.getElementById("inventoryText");
+
+const chatInput = document.getElementById("chatInput");
+const chatBtn = document.getElementById("chatBtn");
+const chatBox = document.getElementById("chatBox");
+
+startBtn.addEventListener("click", startGame);
+attackBtn.addEventListener("click", () => playerAttack("normal"));
+heavyAttackBtn.addEventListener("click", () => playerAttack("heavy"));
+healBtn.addEventListener("click", rest);
+newEnemyBtn.addEventListener("click", spawnNewEnemy);
+chatBtn.addEventListener("click", sendChat);
+
+nameInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") startGame();
+});
+
+chatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") sendChat();
+});
+
+function startGame() {
+  const name = nameInput.value.trim();
+
+  if (!name) {
+    alert("Введи імʼя героя");
+    return;
+  }
+
+  player.name = name;
+  loginPanel.classList.add("hidden");
+  gamePanel.classList.remove("hidden");
+
+  addLog(`Герой ${player.name} прибув у Старий Табір.`);
+  render();
+}
+
+function createEnemy() {
+  const enemies = [
+    { name: "Лісовий вовк", hp: 40, maxHp: 40, damage: 8, xp: 35, gold: 8 },
+    { name: "Розбійник", hp: 55, maxHp: 55, damage: 11, xp: 50, gold: 14 },
+    { name: "Печерний павук", hp: 35, maxHp: 35, damage: 7, xp: 30, gold: 6 }
+  ];
+
+  return { ...enemies[Math.floor(Math.random() * enemies.length)] };
+}
+
+function playerAttack(type) {
+  if (player.hp <= 0) {
+    addLog("Ти непритомний. Натисни “Відпочити”.");
+    return;
+  }
+
+  if (enemy.hp <= 0) {
+    addLog("Ворог уже переможений. Шукай нового.");
+    return;
+  }
+
+  let damage = type === "heavy"
+    ? random(16, 28)
+    : random(8, 16);
+
+  if (type === "heavy" && Math.random() < 0.25) {
+    damage = 0;
+    addLog("🔥 Сильний удар промахнувся!");
+  } else {
+    enemy.hp = Math.max(0, enemy.hp - damage);
+    addLog(`${player.name} завдав ${damage} шкоди ворогу.`);
+  }
+
+  if (enemy.hp <= 0) {
+    winBattle();
+  } else {
+    enemyAttack();
+  }
+
+  render();
+}
+
+function enemyAttack() {
+  const damage = random(enemy.damage - 3, enemy.damage + 4);
+  player.hp = Math.max(0, player.hp - damage);
+
+  addLog(`${enemy.name} атакує і завдає ${damage} шкоди.`);
+
+  if (player.hp <= 0) {
+    addLog("💀 Ти впав у бою. Відпочинь, щоб відновитись.");
+  }
+}
+
+function winBattle() {
+  player.xp += enemy.xp;
+  player.gold += enemy.gold;
+
+  addLog(`🏆 ${enemy.name} переможений! +${enemy.xp} XP, +${enemy.gold} золота.`);
+
+  if (Math.random() < 0.35) {
+    player.inventory.push("Малий лікувальний настій");
+    addLog("🎒 Знайдено предмет: Малий лікувальний настій.");
+  }
+
+  checkLevelUp();
+}
+
+function checkLevelUp() {
+  while (player.xp >= player.xpToNext) {
+    player.xp -= player.xpToNext;
+    player.level += 1;
+    player.xpToNext += 50;
+    player.maxHp += 20;
+    player.hp = player.maxHp;
+
+    addLog(`⭐ Новий рівень! Тепер ти рівня ${player.level}.`);
+  }
+}
+
+function rest() {
+  const heal = random(20, 35);
+  player.hp = Math.min(player.maxHp, player.hp + heal);
+
+  addLog(`🧪 Ти відпочив і відновив ${heal} HP.`);
+  render();
+}
+
+function spawnNewEnemy() {
+  enemy = createEnemy();
+  addLog(`🌲 З темного лісу виходить новий ворог: ${enemy.name}.`);
+  render();
+}
+
+function sendChat() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  const p = document.createElement("p");
+  p.textContent = `${player.name || "Гість"}: ${text}`;
+  chatBox.appendChild(p);
+  chatInput.value = "";
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function render() {
+  heroName.textContent = player.name || "Герой";
+  heroHp.textContent = `${player.hp}/${player.maxHp}`;
+  heroLevel.textContent = player.level;
+  heroXp.textContent = `${player.xp}/${player.xpToNext}`;
+  heroGold.textContent = player.gold;
+
+  enemyName.textContent = enemy.name;
+  enemyHp.textContent = `${enemy.hp}/${enemy.maxHp} HP`;
+
+  const hpPercent = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
+  enemyHpBar.style.width = `${hpPercent}%`;
+
+  inventoryText.textContent = player.inventory.length
+    ? player.inventory.join(", ")
+    : "Порожньо";
+}
+
+function addLog(message) {
+  const p = document.createElement("p");
+  p.textContent = message;
+  battleLog.prepend(p);
+}
+
+function random(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+render();
