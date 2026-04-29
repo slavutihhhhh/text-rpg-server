@@ -47,6 +47,7 @@ function createNewPlayer(name = "") {
   return {
     name,
     chapter: 1,
+    path: null,
     location: "sanctuary",
     scene: "intro",
 
@@ -62,6 +63,10 @@ function createNewPlayer(name = "") {
     captives: 0,
     suspicion: 0,
 
+    motherFavor: 0,
+    rebelPower: 0,
+    redemption: 0,
+
     flags: {},
     mutations: [],
     history: []
@@ -71,22 +76,11 @@ function createNewPlayer(name = "") {
 let player = createNewPlayer();
 
 const locations = {
-  sanctuary: {
-    name: "Підземне Святилище",
-    description: "Серце культу. Тут безпечно, але стіни памʼятають усі ритуали."
-  },
-  village: {
-    name: "Селище Простолюдів",
-    description: "Місце страху, чуток і слабких людей, які ще не знають, що вже стали частиною історії."
-  },
-  forest: {
-    name: "Заборонений Ліс",
-    description: "Темрява між деревами рухається не від вітру. Тут легко знайти есенцію — або втратити розум."
-  },
-  catacombs: {
-    name: "Міські Катакомби",
-    description: "Старі ходи під містом. Тут ховаються вигнанці, контрабандисти і ті, кого ніхто не шукатиме."
-  }
+  sanctuary: { name: "Підземне Святилище" },
+  village: { name: "Селище Простолюдів" },
+  forest: { name: "Заборонений Ліс" },
+  catacombs: { name: "Міські Катакомби" },
+  innerTemple: { name: "Внутрішній Храм" }
 };
 
 const scenes = {
@@ -94,25 +88,24 @@ const scenes = {
     location: "sanctuary",
     title: "Перша ніч",
     text:
-      "Ти стоїш перед вівтарем Великої Матері Плоті. Старі послідовники дивляться мовчки. Вони не знають, чи ти станеш їхнім провідником, чи черговою жертвою.",
+      "Ти стоїш перед вівтарем Великої Матері Плоті. Старі послідовники мовчать. Вони ще не знають, ким ти станеш.",
     choices: [
       {
         text: "Прийняти обітницю культу",
         effect: () => {
-          player.flags.oath = true;
           gain("divinity", 3);
           lose("humanity", 2);
           goToScene("sanctuary_hub");
-          log("Ти прийняв обітницю. У темряві щось відповіло.");
+          log("Ти прийняв обітницю. Темрява відповіла.");
         }
       },
       {
-        text: "Запитати, чому богиня мовчить",
+        text: "Запитати, чому Мати мовчить",
         effect: () => {
-          player.flags.doubt = true;
           gain("mind", 5);
+          player.flags.doubt = true;
           goToScene("sanctuary_hub");
-          log("Старі послідовники відвели очі. Питання було небезпечним.");
+          log("Питання було небезпечним. Але ти його поставив.");
         }
       }
     ]
@@ -122,7 +115,7 @@ const scenes = {
     location: "sanctuary",
     title: "Підземне святилище",
     text:
-      "Святилище чекає. Послідовники шепочуть молитви. Вівтар голодний. За межами храму є селище, ліс і катакомби.",
+      "Святилище чекає. Вівтар голодний. Послідовники хочуть знаків. За межами храму є селище, ліс і катакомби.",
     choices: [
       {
         text: "Провести малий ритуал есенції",
@@ -134,7 +127,7 @@ const scenes = {
           maybeMutation();
           advanceChapter();
           goToScene("sanctuary_hub");
-          log("Ритуал завершено. Ти відчув, як щось усередині тебе стало менш людським.");
+          log("Ритуал зробив тебе сильнішим, але менш людським.");
         }
       },
       {
@@ -149,7 +142,7 @@ const scenes = {
           maybeMutation();
           advanceChapter();
           goToScene("sanctuary_hub");
-          log("Полонений зник у темряві під вівтарем. Культ став сильнішим.");
+          log("Вівтар прийняв жертву. Культ став сильнішим.");
         }
       },
       {
@@ -158,7 +151,7 @@ const scenes = {
           player.body = player.maxBody;
           player.mind = player.maxMind;
           goToScene("sanctuary_hub");
-          log("Ти провів ніч у тиші. Тіло і розум відновлено.");
+          log("Ти відновив сили у тиші святилища.");
         }
       },
       {
@@ -180,18 +173,18 @@ const scenes = {
     location: "village",
     title: "Площа селища",
     text:
-      "На площі пахне димом і мокрою землею. Біля колодязя сперечаються люди, а варта ліниво стежить за натовпом. Тут можна здобути послідовників — або привернути зайву увагу.",
+      "На площі пахне димом і страхом. Тут можна знайти послідовників, полонених або проблеми.",
     choices: [
       {
         text: "Тихо проповідувати серед знедолених",
         effect: () => {
           if (roll(60)) {
             gain("followers", 1);
-            log("Один зі знедолених повірив твоїм словам.");
+            log("Один зі знедолених повірив тобі.");
           } else {
             gain("suspicion", 5);
             lose("mind", 5);
-            log("Твої слова почула не та людина. Підозра зросла.");
+            log("Твої слова почула не та людина.");
           }
           goToScene("village_square");
         }
@@ -202,23 +195,12 @@ const scenes = {
           if (roll(55)) {
             gain("captives", 1);
             gain("suspicion", 8);
-            log("Ти привів полоненого до культу. Але сліди могли помітити.");
+            log("Ти привів полоненого. Але сліди могли помітити.");
           } else {
             lose("body", 10);
             gain("suspicion", 12);
-            log("Жертва вирвалась і здійняла шум. Ти поранений.");
+            log("Жертва вирвалась і здійняла шум.");
           }
-          checkDanger();
-          goToScene("village_square");
-        }
-      },
-      {
-        text: "Підкупити пияка за інформацію",
-        condition: () => player.followers >= 1,
-        effect: () => {
-          lose("followers", 1);
-          gain("essence", 4);
-          log("Послідовник зник у нетрях, але повернувся з корисними чутками й темним знаком.");
           goToScene("village_square");
         }
       },
@@ -233,7 +215,7 @@ const scenes = {
     location: "forest",
     title: "Край Забороненого Лісу",
     text:
-      "Ліс не просто темний — він уважний. Коріння схоже на жили. Тут есенція просочується з землі, але кожен крок тисне на розум.",
+      "Ліс уважний. Тут есенція просочується з землі, але кожен шепіт тисне на розум.",
     choices: [
       {
         text: "Зібрати чорну есенцію",
@@ -241,7 +223,7 @@ const scenes = {
           const amount = rand(4, 9);
           gain("essence", amount);
           lose("mind", rand(4, 9));
-          log(`Ти зібрав ${amount} есенції. Ліс щось прошепотів у відповідь.`);
+          log(`Ти зібрав ${amount} есенції.`);
           goToScene("forest_edge");
         }
       },
@@ -251,27 +233,13 @@ const scenes = {
           if (roll(50)) {
             gain("divinity", 5);
             lose("humanity", 3);
-            log("Шепіт відкрив тобі частину правди про Матір.");
+            log("Шепіт відкрив частину правди.");
           } else {
             lose("mind", 12);
-            log("Шепіт був занадто глибоким. Розум тріснув.");
+            log("Шепіт був занадто глибоким.");
           }
           maybeMutation();
           advanceChapter();
-          goToScene("forest_edge");
-        }
-      },
-      {
-        text: "Провести нічне полювання",
-        effect: () => {
-          if (roll(45)) {
-            gain("captives", 1);
-            gain("essence", 3);
-            log("Полювання вдалося. Ліс прийняв твої кроки.");
-          } else {
-            lose("body", 14);
-            log("Щось полювало на тебе у відповідь.");
-          }
           goToScene("forest_edge");
         }
       },
@@ -286,7 +254,7 @@ const scenes = {
     location: "catacombs",
     title: "Вхід у катакомби",
     text:
-      "Під містом немає закону. Лише темрява, старі кістки і люди, яких ніхто не оплакуватиме. Тут легко знайти матеріал для культу, але не всі мешканці катакомб беззахисні.",
+      "Під містом немає закону. Тут ховаються вигнанці, злочинці й ті, кого ніхто не шукатиме.",
     choices: [
       {
         text: "Шукати вигнанців для культу",
@@ -294,10 +262,10 @@ const scenes = {
           if (roll(55)) {
             gain("followers", 2);
             gain("suspicion", 4);
-            log("Двоє вигнанців прийняли твою обітницю.");
+            log("Двоє вигнанців прийняли обітницю.");
           } else {
             lose("body", 10);
-            log("Тебе зустріли ножами і прокляттями.");
+            log("Тебе зустріли ножами.");
           }
           goToScene("catacombs_gate");
         }
@@ -307,25 +275,12 @@ const scenes = {
         effect: () => {
           if (roll(65)) {
             gain("captives", 1);
-            log("Полонений не мав імені. Це навіть зручніше.");
+            log("Полонений не мав імені.");
           } else {
             lose("body", 8);
             gain("suspicion", 6);
-            log("У темряві здійнявся шум. Хтось бачив твоє обличчя.");
+            log("Хтось бачив твоє обличчя.");
           }
-          checkDanger();
-          goToScene("catacombs_gate");
-        }
-      },
-      {
-        text: "Знайти старий знак Матері",
-        effect: () => {
-          gain("essence", 6);
-          gain("divinity", 4);
-          lose("humanity", 2);
-          log("На стіні був знак, старіший за культ. Він відгукнувся.");
-          maybeMutation();
-          advanceChapter();
           goToScene("catacombs_gate");
         }
       },
@@ -340,14 +295,14 @@ const scenes = {
     location: "village",
     title: "Мисливці на культ",
     text:
-      "Підозра стала занадто високою. До селища прибули озброєні мисливці. Вони шукають сліди культу. Якщо вони знайдуть святилище, усе закінчиться.",
+      "Підозра стала критичною. Мисливці шукають сліди культу. Якщо вони знайдуть святилище, усе може скінчитись.",
     choices: [
       {
         text: "Підставити невинного",
         effect: () => {
           lose("humanity", 12);
           player.suspicion = Math.max(0, player.suspicion - 25);
-          log("Невинного повели на допит. Культ виграв час.");
+          log("Невинного повели. Культ виграв час.");
           goToScene("sanctuary_hub");
         }
       },
@@ -357,7 +312,7 @@ const scenes = {
         effect: () => {
           lose("followers", 2);
           player.suspicion = Math.max(0, player.suspicion - 35);
-          log("Двоє послідовників не повернулись. Але сліди зникли.");
+          log("Двоє послідовників не повернулись.");
           goToScene("sanctuary_hub");
         }
       },
@@ -367,11 +322,11 @@ const scenes = {
           if (player.divinity >= 40 || roll(45)) {
             player.suspicion = Math.max(0, player.suspicion - 20);
             gain("essence", 8);
-            log("Мисливці не були готові до того, що вийшло з темряви.");
+            log("Мисливці не були готові до темряви.");
           } else {
             lose("body", 35);
             lose("followers", 1);
-            log("Бій був важким. Культ вижив, але заплатив кровʼю.");
+            log("Культ вижив, але заплатив кровʼю.");
           }
           goToScene("sanctuary_hub");
         }
@@ -380,48 +335,233 @@ const scenes = {
   },
 
   ascension_choice: {
-    location: "sanctuary",
+    location: "innerTemple",
     title: "Місце Матері",
     text:
-      "Вівтар більше не здається великим. Велика Мати слабшає, а культ дивиться вже не на неї — на тебе. Настав момент вибору.",
+      "Велика Мати слабшає. Культ дивиться вже не на неї, а на тебе. Це не кінець — це розлом у долі культу.",
     choices: [
       {
         text: "Залишитись вірним Матері",
         effect: () => {
-          player.flags.ending = "servant";
-          log("Ти став її голосом. Культ вижив, але ти не став вільним.");
-          goToScene("ending");
+          player.path = "servant";
+          player.chapter = 4;
+          gain("motherFavor", 20);
+          goToScene("servant_start");
+          log("Ти схилився перед Матірʼю. Вона дала тобі частину свого голоду.");
         }
       },
       {
         text: "Узурпувати її місце",
-        condition: () => player.divinity >= 120 && player.humanity <= 40,
+        condition: () => player.divinity >= 120 && player.humanity <= 60,
         effect: () => {
-          player.flags.ending = "god";
-          log("Ти зрадив богиню — і культ упав ниць перед новим божеством.");
-          goToScene("ending");
+          player.path = "usurper";
+          player.chapter = 4;
+          gain("rebelPower", 20);
+          gain("suspicion", 15);
+          goToScene("usurper_start");
+          log("Ти не схилився. Частина культу злякалась. Частина — впала на коліна.");
         }
       },
       {
         text: "Знищити культ і піти",
-        condition: () => player.humanity >= 60,
+        condition: () => player.humanity >= 40,
         effect: () => {
-          player.flags.ending = "escape";
-          log("Ти спалив святилище. Але шепіт залишився в тобі.");
-          goToScene("ending");
+          player.path = "renegade";
+          player.chapter = 4;
+          gain("redemption", 20);
+          lose("followers", Math.floor(player.followers / 2));
+          goToScene("renegade_start");
+          log("Ти відвернувся від вівтаря. Але культ не відпустить тебе просто так.");
         }
       }
     ]
   },
 
-  ending: {
-    location: "sanctuary",
-    title: "Кінець глави",
+  servant_start: {
+    location: "innerTemple",
+    title: "Пророк Матері",
     text:
-      "Історія цієї версії завершена. Але культова хроніка може продовжитись: нові глави, вороги, ритуали, політика культу і справжнє вознесіння.",
+      "Ти обрав служіння. Мати шепоче крізь вівтар: її сила розірвана, її голос слабкий. Щоб вона повернулась, культ має підкорити селище і нагодувати святилище.",
     choices: [
       {
-        text: "Продовжити після фіналу",
+        text: "Поширити волю Матері через послідовників",
+        condition: () => player.followers >= 2,
+        effect: () => {
+          lose("followers", 1);
+          gain("motherFavor", rand(8, 14));
+          gain("suspicion", 6);
+          log("Послідовники понесли її шепіт у селище.");
+          checkPathProgress();
+          goToScene("servant_start");
+        }
+      },
+      {
+        text: "Провести ритуал відновлення Матері",
+        condition: () => player.captives >= 1 && player.essence >= 10,
+        effect: () => {
+          lose("captives", 1);
+          lose("essence", 10);
+          gain("motherFavor", 22);
+          gain("divinity", 6);
+          lose("humanity", 8);
+          log("Мати ковтнула силу. Її голос став гучнішим.");
+          checkPathProgress();
+          goToScene("servant_start");
+        }
+      },
+      {
+        text: "Повернутись до звичайних справ культу",
+        effect: () => goToScene("sanctuary_hub")
+      }
+    ]
+  },
+
+  usurper_start: {
+    location: "innerTemple",
+    title: "Розкол культу",
+    text:
+      "Ти обрав узурпацію. Тепер культ розділений. Вірні Матері шепочуть змову, а твої прихильники чекають доказу сили.",
+    choices: [
+      {
+        text: "Переконати культ силою",
+        condition: () => player.essence >= 8,
+        effect: () => {
+          lose("essence", 8);
+          gain("rebelPower", rand(10, 18));
+          gain("divinity", 5);
+          lose("humanity", 5);
+          log("Ти показав силу. Частина культу перейшла на твій бік.");
+          checkPathProgress();
+          goToScene("usurper_start");
+        }
+      },
+      {
+        text: "Знищити вірних Матері",
+        condition: () => player.followers >= 3,
+        effect: () => {
+          lose("followers", 2);
+          gain("rebelPower", 22);
+          gain("suspicion", 12);
+          lose("humanity", 10);
+          log("Святилище пережило ніч чистки.");
+          checkPathProgress();
+          goToScene("usurper_start");
+        }
+      },
+      {
+        text: "Повернутись до звичайних справ культу",
+        effect: () => goToScene("sanctuary_hub")
+      }
+    ]
+  },
+
+  renegade_start: {
+    location: "forest",
+    title: "Відступник",
+    text:
+      "Ти відмовився від культу. Але шепіт залишився в крові. Колишні послідовники шукають тебе, а Мати приходить у сни.",
+    choices: [
+      {
+        text: "Рятувати тих, кого культ готував для ритуалів",
+        condition: () => player.captives >= 1,
+        effect: () => {
+          lose("captives", 1);
+          gain("redemption", 15);
+          gain("humanity", 6);
+          log("Один полонений утік. Ти почув не шепіт, а власне серце.");
+          checkPathProgress();
+          goToScene("renegade_start");
+        }
+      },
+      {
+        text: "Знищити старі знаки культу",
+        condition: () => player.essence >= 6,
+        effect: () => {
+          lose("essence", 6);
+          gain("redemption", rand(10, 16));
+          lose("divinity", 4);
+          log("Знак згорів. Але біль пройшов крізь тебе.");
+          checkPathProgress();
+          goToScene("renegade_start");
+        }
+      },
+      {
+        text: "Повернутись у світ і діяти обережно",
+        effect: () => goToScene("village_square")
+      }
+    ]
+  },
+
+  servant_endgame: {
+    location: "innerTemple",
+    title: "Голос Матері",
+    text:
+      "Мати майже повернулась. Але тепер ти розумієш: її відродження забере твою волю. Ти можеш дозволити це або в останній момент зрадити.",
+    choices: [
+      {
+        text: "Стати її Верховним Жерцем",
+        effect: () => {
+          player.chapter = 5;
+          log("Ти став Верховним Жерцем. Гра продовжиться у майбутній Главі V.");
+          goToScene("postgame");
+        }
+      },
+      {
+        text: "В останній момент забрати її силу",
+        condition: () => player.divinity >= 160,
+        effect: () => {
+          player.path = "usurper";
+          player.chapter = 5;
+          gain("rebelPower", 40);
+          log("Ти зрадив Матір у момент її повернення.");
+          goToScene("postgame");
+        }
+      }
+    ]
+  },
+
+  usurper_endgame: {
+    location: "innerTemple",
+    title: "Новий Вівтар",
+    text:
+      "Твої прихильники готові назвати тебе новим божеством. Але старий голос Матері ще живий у стінах.",
+    choices: [
+      {
+        text: "Почати будівництво нового культу",
+        effect: () => {
+          player.chapter = 5;
+          log("Ти став центром нового культу. Глава V відкриється пізніше.");
+          goToScene("postgame");
+        }
+      }
+    ]
+  },
+
+  renegade_endgame: {
+    location: "forest",
+    title: "Попіл святилища",
+    text:
+      "Ти майже зірвав владу культу. Але скверна в тобі ще жива. Спокута не завершена.",
+    choices: [
+      {
+        text: "Продовжити очищення",
+        effect: () => {
+          player.chapter = 5;
+          log("Ти вступив на шлях очищення. Глава V відкриється пізніше.");
+          goToScene("postgame");
+        }
+      }
+    ]
+  },
+
+  postgame: {
+    location: "innerTemple",
+    title: "Після перелому",
+    text:
+      "Це не фінал. Твій вибір змінив гру. Далі будуть нові глави: війна культів, очищення, або остаточне вознесіння.",
+    choices: [
+      {
+        text: "Продовжити вільну гру",
         effect: () => goToScene("sanctuary_hub")
       }
     ]
@@ -538,7 +678,6 @@ async function login() {
 
 function logout() {
   apiPost("/api/logout", {});
-
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
 
@@ -582,11 +721,8 @@ async function saveGame(showLog = true) {
 async function apiGetSave() {
   try {
     const response = await fetch("/api/save", {
-      headers: {
-        Authorization: `Bearer ${authToken}`
-      }
+      headers: { Authorization: `Bearer ${authToken}` }
     });
-
     return await response.json();
   } catch {
     return { ok: false };
@@ -683,6 +819,9 @@ function normalizeStats() {
   player.followers = Math.max(0, player.followers);
   player.captives = Math.max(0, player.captives);
   player.suspicion = clamp(player.suspicion, 0, 100);
+  player.motherFavor = Math.max(0, player.motherFavor || 0);
+  player.rebelPower = Math.max(0, player.rebelPower || 0);
+  player.redemption = Math.max(0, player.redemption || 0);
 }
 
 function clamp(value, min, max) {
@@ -732,14 +871,14 @@ function checkDanger() {
     player.body = 1;
     player.mind = Math.max(0, player.mind - 15);
     player.scene = "sanctuary_hub";
-    log("Тебе принесли назад у святилище. Тіло майже зламане.");
+    log("Тебе принесли назад у святилище.");
   }
 
   if (player.mind <= 0) {
     player.mind = 1;
     player.humanity = Math.max(0, player.humanity - 10);
     player.scene = "sanctuary_hub";
-    log("Твій розум провалився в темряву. Ти повернувся іншим.");
+    log("Твій розум провалився в темряву.");
   }
 }
 
@@ -747,11 +886,25 @@ function checkAscensionChoice() {
   if (
     player.chapter >= 3 &&
     player.divinity >= 120 &&
-    player.scene !== "ascension_choice" &&
-    player.scene !== "ending"
+    !player.path &&
+    player.scene !== "ascension_choice"
   ) {
     player.scene = "ascension_choice";
-    log("Настав момент вибору: служити чи зайняти місце богині.");
+    log("Настав момент вибору: служити, узурпувати чи втекти.");
+  }
+}
+
+function checkPathProgress() {
+  if (player.path === "servant" && player.motherFavor >= 100) {
+    goToScene("servant_endgame");
+  }
+
+  if (player.path === "usurper" && player.rebelPower >= 100) {
+    goToScene("usurper_endgame");
+  }
+
+  if (player.path === "renegade" && player.redemption >= 100) {
+    goToScene("renegade_endgame");
   }
 }
 
@@ -781,15 +934,26 @@ function renderObjective() {
   } else if (player.chapter === 2) {
     objectiveText.textContent =
       "Глава II: Тінь над селищем. Посилюй культ, але не дай підозрі знищити тебе.";
-  } else {
+  } else if (player.chapter === 3) {
     objectiveText.textContent =
-      "Глава III: Зрада Матері. Виріши, чи служити старій богині, чи стати новим божеством.";
+      "Глава III: Зрада Матері. Дійди до переломного вибору.";
+  } else if (player.path === "servant") {
+    objectiveText.textContent =
+      `Глава IV: Пророк Матері. Віднови її силу: ${player.motherFavor}/100.`;
+  } else if (player.path === "usurper") {
+    objectiveText.textContent =
+      `Глава IV: Розкол культу. Збери силу узурпатора: ${player.rebelPower}/100.`;
+  } else if (player.path === "renegade") {
+    objectiveText.textContent =
+      `Глава IV: Відступник. Очисти себе і зруйнуй спадщину культу: ${player.redemption}/100.`;
+  } else {
+    objectiveText.textContent = "Глава V: продовження кампанії буде розширено.";
   }
 }
 
 function renderScene() {
   const scene = scenes[player.scene] || scenes.intro;
-  const location = locations[scene.location];
+  const location = locations[scene.location] || locations.sanctuary;
 
   sceneLocation.textContent = location.name;
   sceneTitle.textContent = scene.title;
@@ -803,7 +967,6 @@ function renderScene() {
     const button = document.createElement("button");
     button.textContent = choice.text;
     button.addEventListener("click", () => choose(choice));
-
     choicesBox.appendChild(button);
   });
 }
@@ -822,6 +985,7 @@ function renderMap() {
       if (id === "village") travel("village", "village_square");
       if (id === "forest") travel("forest", "forest_edge");
       if (id === "catacombs") travel("catacombs", "catacombs_gate");
+      if (id === "innerTemple") travel("innerTemple", player.path ? `${player.path}_start` : "ascension_choice");
     });
 
     mapBox.appendChild(button);
@@ -835,6 +999,7 @@ function renderCondition() {
   conditionBox.innerHTML = `
     <p class="condition-line">Підозра світу: <span class="${dangerClass}">${getSuspicionText()}</span></p>
     <p class="condition-line">Людяність: <span class="${humanityClass}">${getHumanityText()}</span></p>
+    <p class="condition-line">Шлях: ${getPathText()}</p>
     <p class="condition-line">Мутації: ${player.mutations.length ? player.mutations.join(", ") : "немає"}</p>
   `;
 }
@@ -851,10 +1016,19 @@ function getHumanityText() {
   return "стабільна";
 }
 
+function getPathText() {
+  if (player.path === "servant") return "Пророк Матері";
+  if (player.path === "usurper") return "Узурпатор";
+  if (player.path === "renegade") return "Відступник";
+  return "ще не обрано";
+}
+
 function getChapterName() {
   if (player.chapter === 1) return "Глава I: Народження культу";
   if (player.chapter === 2) return "Глава II: Тінь над селищем";
-  return "Глава III: Зрада Матері";
+  if (player.chapter === 3) return "Глава III: Зрада Матері";
+  if (player.chapter === 4) return "Глава IV: Наслідки вибору";
+  return "Глава V: Останній шлях";
 }
 
 function log(text) {
