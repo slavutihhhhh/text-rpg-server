@@ -1,19 +1,27 @@
-const SAVE_KEY = "cult_save_v3";
+const TOKEN_KEY = "cultgame_token";
+const USER_KEY = "cultgame_user";
 
-let player = {
-  name: "",
-  body: 100,
-  maxBody: 100,
-  mind: 100,
-  maxMind: 100,
-  divinity: 0,
-  humanity: 100,
-  essence: 0,
-  followers: 3,
-  offerings: 2,
-  rank: 1,
-  mutations: []
-};
+let authToken = localStorage.getItem(TOKEN_KEY);
+let currentUser = localStorage.getItem(USER_KEY);
+
+function createNewPlayer(name = "") {
+  return {
+    name,
+    body: 100,
+    maxBody: 100,
+    mind: 100,
+    maxMind: 100,
+    divinity: 0,
+    humanity: 100,
+    essence: 0,
+    followers: 3,
+    offerings: 2,
+    rank: 1,
+    mutations: []
+  };
+}
+
+let player = createNewPlayer();
 
 const rituals = [
   {
@@ -97,11 +105,20 @@ const spells = [
 
 const $ = (id) => document.getElementById(id);
 
+const authPanel = $("authPanel");
 const startPanel = $("startPanel");
 const gamePanel = $("gamePanel");
+
+const loginInput = $("loginInput");
+const passwordInput = $("passwordInput");
+const loginBtn = $("loginBtn");
+const registerBtn = $("registerBtn");
+const authMessage = $("authMessage");
+
 const nameInput = $("nameInput");
 const startBtn = $("startBtn");
 const saveBtn = $("saveBtn");
+const logoutBtn = $("logoutBtn");
 
 const cultistName = $("cultistName");
 const ascensionTitle = $("ascensionTitle");
@@ -141,13 +158,21 @@ const whisperInput = $("whisperInput");
 const whisperBtn = $("whisperBtn");
 const whisperBox = $("whisperBox");
 
+loginBtn.addEventListener("click", login);
+registerBtn.addEventListener("click", register);
 startBtn.addEventListener("click", startGame);
-saveBtn.addEventListener("click", saveGame);
+saveBtn.addEventListener("click", () => saveGame(true));
+logoutBtn.addEventListener("click", logout);
+
 gatherBtn.addEventListener("click", gather);
 preachBtn.addEventListener("click", preach);
 meditateBtn.addEventListener("click", meditate);
 restBtn.addEventListener("click", rest);
 whisperBtn.addEventListener("click", sendWhisper);
+
+passwordInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") login();
+});
 
 nameInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") startGame();
@@ -157,48 +182,194 @@ whisperInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") sendWhisper();
 });
 
-loadGame();
-render();
+init();
+
+async function init() {
+  render();
+
+  if (!authToken) {
+    showAuth();
+    return;
+  }
+
+  const result = await apiGetSave();
+
+  if (!result.ok) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    authToken = null;
+    currentUser = null;
+    showAuth();
+    return;
+  }
+
+  if (result.save) {
+    player = {
+      ...createNewPlayer(),
+      ...result.save
+    };
+
+    showGame();
+    log(`🌒 Вітаємо, ${currentUser}. Культ памʼятає тебе.`);
+  } else {
+    showStart();
+  }
+
+  render();
+}
+
+async function register() {
+  const username = loginInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  const result = await apiPost("/api/register", { username, password });
+
+  if (!result.ok) {
+    authMessage.textContent = result.error || "Помилка реєстрації";
+    return;
+  }
+
+  authToken = result.token;
+  currentUser = result.username;
+
+  localStorage.setItem(TOKEN_KEY, authToken);
+  localStorage.setItem(USER_KEY, currentUser);
+
+  authMessage.textContent = "";
+  player = createNewPlayer();
+
+  showStart();
+  render();
+}
+
+async function login() {
+  const username = loginInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  const result = await apiPost("/api/login", { username, password });
+
+  if (!result.ok) {
+    authMessage.textContent = result.error || "Помилка входу";
+    return;
+  }
+
+  authToken = result.token;
+  currentUser = result.username;
+
+  localStorage.setItem(TOKEN_KEY, authToken);
+  localStorage.setItem(USER_KEY, currentUser);
+
+  authMessage.textContent = "";
+
+  if (result.save) {
+    player = {
+      ...createNewPlayer(),
+      ...result.save
+    };
+
+    showGame();
+    log(`🌒 Вітаємо, ${currentUser}. Збереження завантажено.`);
+  } else {
+    player = createNewPlayer();
+    showStart();
+  }
+
+  render();
+}
+
+function logout() {
+  apiPost("/api/logout", {});
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+
+  authToken = null;
+  currentUser = null;
+  player = createNewPlayer();
+
+  logBox.innerHTML = "";
+  showAuth();
+  render();
+}
 
 function startGame() {
   const name = nameInput.value.trim();
-  if (!name) return alert("Введи імʼя адепта");
 
-  player.name = name;
+  if (!name) {
+    alert("Введи імʼя адепта");
+    return;
+  }
 
-  startPanel.classList.add("hidden");
-  gamePanel.classList.remove("hidden");
+  player = createNewPlayer(name);
 
+  showGame();
   log("🕯️ Ти увійшов у культ. Шлях назад зник.");
+
   saveGame(false);
   render();
 }
 
-function saveGame(showLog = true) {
-  localStorage.setItem(SAVE_KEY, JSON.stringify(player));
+async function saveGame(showLog = true) {
+  if (!authToken) return;
+
+  const result = await apiPost("/api/save", { save: player });
+
+  if (!result.ok) {
+    log("❌ Не вдалося зберегти гру.");
+    return;
+  }
 
   if (showLog) {
-    log("💾 Свідомість збережено.");
+    log("💾 Свідомість збережено на сервері.");
   }
 }
 
-function loadGame() {
-  const saved = localStorage.getItem(SAVE_KEY);
-  if (!saved) return;
-
+async function apiGetSave() {
   try {
-    player = {
-      ...player,
-      ...JSON.parse(saved)
-    };
+    const response = await fetch("/api/save", {
+      headers: {
+        Authorization: `Bearer ${authToken}`
+      }
+    });
 
-    startPanel.classList.add("hidden");
-    gamePanel.classList.remove("hidden");
-
-    log("🌒 Культ памʼятає тебе.");
+    return await response.json();
   } catch {
-    localStorage.removeItem(SAVE_KEY);
+    return { ok: false, error: "Сервер недоступний" };
   }
+}
+
+async function apiPost(url, data) {
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+      },
+      body: JSON.stringify(data)
+    });
+
+    return await response.json();
+  } catch {
+    return { ok: false, error: "Сервер недоступний" };
+  }
+}
+
+function showAuth() {
+  authPanel.classList.remove("hidden");
+  startPanel.classList.add("hidden");
+  gamePanel.classList.add("hidden");
+}
+
+function showStart() {
+  authPanel.classList.add("hidden");
+  startPanel.classList.remove("hidden");
+  gamePanel.classList.add("hidden");
+}
+
+function showGame() {
+  authPanel.classList.add("hidden");
+  startPanel.classList.add("hidden");
+  gamePanel.classList.remove("hidden");
 }
 
 function gather() {
@@ -486,7 +657,7 @@ function sendWhisper() {
   if (!text) return;
 
   const p = document.createElement("p");
-  p.textContent = `${player.name || "Гість"}: ${text}`;
+  p.textContent = `${player.name || currentUser || "Гість"}: ${text}`;
   whisperBox.appendChild(p);
 
   whisperInput.value = "";
