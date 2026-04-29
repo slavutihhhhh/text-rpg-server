@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cult of Flesh: Ascension</title>
+  <title>CultGame</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
@@ -12,13 +12,29 @@
       <p class="eyebrow">Dark Horror Cult RPG</p>
       <h1>🕯️ Cult of Flesh: Ascension</h1>
       <p class="subtitle">
-        Ти починаєш як служитель Великої Матері Плоті. Але кожен ритуал наближає тебе до питання:
-        служити божеству — чи стати ним?
+        Реєструйся, входь у культ і веди свого адепта до божественності.
       </p>
     </header>
 
     <main class="layout">
-      <section class="panel" id="startPanel">
+      <section class="panel" id="authPanel">
+        <h2>Вхід / Реєстрація</h2>
+        <p>Введи логін і пароль.</p>
+
+        <div class="auth-box">
+          <input id="loginInput" type="text" placeholder="Логін" />
+          <input id="passwordInput" type="password" placeholder="Пароль" />
+        </div>
+
+        <div class="actions">
+          <button id="loginBtn">Увійти</button>
+          <button id="registerBtn">Зареєструватись</button>
+        </div>
+
+        <p id="authMessage" class="warning"></p>
+      </section>
+
+      <section class="panel hidden" id="startPanel">
         <h2>Пробудження</h2>
         <p>Назви імʼя того, хто переступить межу людського.</p>
 
@@ -34,7 +50,10 @@
             <h2 id="cultistName">Адепт</h2>
             <p id="ascensionTitle">Немічний послідовник</p>
           </div>
-          <button id="saveBtn">💾 Зберегти</button>
+          <div class="actions">
+            <button id="saveBtn">💾 Зберегти</button>
+            <button id="logoutBtn">🚪 Вийти</button>
+          </div>
         </div>
 
         <div class="stats-grid">
