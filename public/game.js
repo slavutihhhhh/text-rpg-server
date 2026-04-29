@@ -185,6 +185,7 @@ whisperInput.addEventListener("keydown", (event) => {
 init();
 
 async function init() {
+  hideAllPanels();
   render();
 
   if (!authToken) {
@@ -210,7 +211,7 @@ async function init() {
     };
 
     showGame();
-    log(`🌒 Вітаємо, ${currentUser}. Культ памʼятає тебе.`);
+    log(`🌒 Вітаємо, ${currentUser}. Збереження завантажено.`);
   } else {
     showStart();
   }
@@ -279,6 +280,7 @@ async function login() {
 
 function logout() {
   apiPost("/api/logout", {});
+
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
 
@@ -286,7 +288,13 @@ function logout() {
   currentUser = null;
   player = createNewPlayer();
 
-  logBox.innerHTML = "";
+  if (logBox) logBox.innerHTML = "";
+  if (whisperBox) whisperBox.innerHTML = "";
+
+  loginInput.value = "";
+  passwordInput.value = "";
+  authMessage.textContent = "";
+
   showAuth();
   render();
 }
@@ -354,6 +362,12 @@ async function apiPost(url, data) {
   }
 }
 
+function hideAllPanels() {
+  authPanel.classList.add("hidden");
+  startPanel.classList.add("hidden");
+  gamePanel.classList.add("hidden");
+}
+
 function showAuth() {
   authPanel.classList.remove("hidden");
   startPanel.classList.add("hidden");
@@ -367,7 +381,7 @@ function showStart() {
 }
 
 function showGame() {
-  authPanel.classList.add("hidden");   // 👈 ОЦЕ ГОЛОВНЕ
+  authPanel.classList.add("hidden");
   startPanel.classList.add("hidden");
   gamePanel.classList.remove("hidden");
 }
