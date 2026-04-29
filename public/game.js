@@ -367,7 +367,7 @@ function showStart() {
 }
 
 function showGame() {
-  authPanel.classList.add("hidden");
+  authPanel.classList.add("hidden");   // 👈 ОЦЕ ГОЛОВНЕ
   startPanel.classList.add("hidden");
   gamePanel.classList.remove("hidden");
 }
