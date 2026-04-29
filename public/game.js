@@ -1,4 +1,4 @@
-const SAVE_KEY = "cult_save_v1";
+const SAVE_KEY = "cult_save_v2";
 
 let player = {
   name: "",
@@ -10,10 +10,47 @@ let player = {
   humanity: 100,
   essence: 0,
   followers: 3,
-  offerings: 0,
+  offerings: 2,
   rank: 1,
   mutations: []
 };
+
+// ---------- РИТУАЛИ ----------
+
+const rituals = [
+  {
+    id: "blood_awakening",
+    name: "Кровне пробудження",
+    cost: { offerings: 1, essence: 3 },
+    effect: () => {
+      player.divinity += rand(5, 10);
+      player.humanity -= 5;
+      log("🩸 Кров відкрила шлях до сили.");
+    }
+  },
+  {
+    id: "flesh_call",
+    name: "Поклик плоті",
+    cost: { offerings: 2 },
+    effect: () => {
+      player.followers += 1;
+      player.divinity += 3;
+      log("👥 Щось відгукнулось на твій поклик.");
+    }
+  },
+  {
+    id: "dark_consumption",
+    name: "Темне поглинання",
+    cost: { offerings: 1 },
+    effect: () => {
+      const heal = rand(15, 30);
+      player.body = Math.min(player.maxBody, player.body + heal);
+      player.divinity += 4;
+      player.humanity -= 8;
+      log(`🩸 Ти поглинув жертву і відновив ${heal} тіла.`);
+    }
+  }
+];
 
 const $ = (id) => document.getElementById(id);
 
@@ -35,6 +72,9 @@ const essenceStat = $("essenceStat");
 const followersStat = $("followersStat");
 const offeringsStat = $("offeringsStat");
 const rankStat = $("rankStat");
+
+const ritualButtons = $("ritualButtons");
+const ritualText = $("ritualText");
 
 const logBox = $("logBox");
 
@@ -67,14 +107,14 @@ function startGame() {
   startPanel.classList.add("hidden");
   gamePanel.classList.remove("hidden");
 
-  log(`Ти вступив у культ. Шлях назад зник.`);
+  log("🕯️ Ти увійшов у культ.");
   saveGame();
   render();
 }
 
 function saveGame() {
   localStorage.setItem(SAVE_KEY, JSON.stringify(player));
-  log("💾 Свідомість зафіксована.");
+  log("💾 Свідомість збережено.");
 }
 
 function loadGame() {
@@ -86,7 +126,7 @@ function loadGame() {
   startPanel.classList.add("hidden");
   gamePanel.classList.remove("hidden");
 
-  log("Ти повернувся. Культ памʼятає.");
+  log("🌒 Культ памʼятає тебе.");
 }
 
 // ---------- ДІЇ ----------
@@ -96,7 +136,7 @@ function gather() {
 
   if (roll < 0.4) {
     player.offerings++;
-    log("🧍 Ти знайшов нову жертву.");
+    log("🧍 Ти знайшов жертву.");
   } else if (roll < 0.7) {
     const essence = rand(2, 6);
     player.essence += essence;
@@ -104,28 +144,21 @@ function gather() {
   } else {
     const dmg = rand(5, 12);
     player.body -= dmg;
-    log(`⚠️ Щось у темряві атакувало тебе (-${dmg}).`);
+    log(`⚠️ Темрява ранить тебе (-${dmg}).`);
   }
 
   render();
 }
 
 function preach() {
-  if (player.mind < 10) {
-    log("🧠 Твій розум занадто слабкий.");
-    return;
-  }
-
-  const roll = Math.random();
-
   player.mind -= 10;
 
-  if (roll < 0.5) {
+  if (Math.random() < 0.5) {
     player.followers++;
-    log("👥 Новий послідовник приєднався.");
+    log("👥 Новий послідовник.");
   } else {
     player.humanity -= 5;
-    log("⚖️ Ти зламав чужу волю. Людяність зменшилась.");
+    log("⚖️ Ти зламав волю.");
   }
 
   render();
@@ -141,11 +174,10 @@ function meditate() {
   player.divinity += rand(2, 6);
   player.humanity -= 3;
 
-  log("👁️ Ти наблизився до божественного.");
+  log("👁️ Ти відчув щось більше.");
 
   checkMutation();
   checkRank();
-
   render();
 }
 
@@ -153,23 +185,42 @@ function rest() {
   player.body = Math.min(player.maxBody, player.body + 20);
   player.mind = Math.min(player.maxMind, player.mind + 20);
 
-  log("🕯️ Ти відновив сили.");
+  log("🕯️ Відновлення.");
+  render();
+}
+
+// ---------- РИТУАЛИ ----------
+
+function performRitual(ritual) {
+  if (
+    (ritual.cost.offerings || 0) > player.offerings ||
+    (ritual.cost.essence || 0) > player.essence
+  ) {
+    log("❌ Недостатньо ресурсів для ритуалу.");
+    return;
+  }
+
+  player.offerings -= ritual.cost.offerings || 0;
+  player.essence -= ritual.cost.essence || 0;
+
+  ritual.effect();
+
+  checkMutation();
+  checkRank();
   render();
 }
 
 // ---------- МУТАЦІЇ ----------
 
 function checkMutation() {
-  if (player.divinity < 20) return;
-
-  if (player.mutations.length === 0) {
-    player.mutations.push("Твої очі бачать більше, ніж дозволено.");
-    log("🧬 Мутація: Очі відкрились.");
+  if (player.divinity > 20 && player.mutations.length === 0) {
+    player.mutations.push("Очі бачать більше.");
+    log("🧬 Мутація: Очі відкриті.");
   }
 
   if (player.divinity > 50 && player.mutations.length === 1) {
-    player.mutations.push("Твоє тіло пульсує чужою силою.");
-    log("🧬 Мутація: Плоть змінюється.");
+    player.mutations.push("Плоть змінюється.");
+    log("🧬 Мутація: Тіло мутує.");
   }
 }
 
@@ -202,6 +253,20 @@ function render() {
   rankStat.textContent = roman(player.rank);
 
   ascensionTitle.textContent = getTitle();
+
+  renderRituals();
+}
+
+function renderRituals() {
+  ritualButtons.innerHTML = "";
+  ritualText.textContent = "Виконуй ритуали, щоб наблизитись до божественного.";
+
+  rituals.forEach((r) => {
+    const btn = document.createElement("button");
+    btn.textContent = `🩸 ${r.name}`;
+    btn.onclick = () => performRitual(r);
+    ritualButtons.appendChild(btn);
+  });
 }
 
 // ---------- УТИЛІТИ ----------
@@ -217,11 +282,11 @@ function rand(min, max) {
 }
 
 function roman(num) {
-  return ["I", "II", "III", "IV", "V"][num - 1] || num;
+  return ["I", "II", "III", "IV"][num - 1] || num;
 }
 
 function getTitle() {
   if (player.rank === 3) return "Провідник Плоті";
   if (player.rank === 2) return "Жрець Культу";
-  return "Немічний послідовник";
+  return "Адепт";
 }
