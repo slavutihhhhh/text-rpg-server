@@ -4,105 +4,6 @@ const USER_KEY = "cultgame_user";
 let authToken = localStorage.getItem(TOKEN_KEY);
 let currentUser = localStorage.getItem(USER_KEY);
 
-function createNewPlayer(name = "") {
-  return {
-    name,
-    body: 100,
-    maxBody: 100,
-    mind: 100,
-    maxMind: 100,
-    divinity: 0,
-    humanity: 100,
-    essence: 0,
-    followers: 3,
-    offerings: 2,
-    rank: 1,
-    mutations: []
-  };
-}
-
-let player = createNewPlayer();
-
-const rituals = [
-  {
-    name: "Кровне пробудження",
-    cost: { offerings: 1, essence: 3 },
-    effect: () => {
-      player.divinity += rand(5, 10);
-      player.humanity -= 5;
-      log("🩸 Кров відкрила шлях до сили.");
-    }
-  },
-  {
-    name: "Поклик плоті",
-    cost: { offerings: 2 },
-    effect: () => {
-      player.followers += 1;
-      player.divinity += 3;
-      log("👥 Щось відгукнулось на твій поклик.");
-    }
-  },
-  {
-    name: "Темне поглинання",
-    cost: { offerings: 1 },
-    effect: () => {
-      const heal = rand(15, 30);
-      player.body = Math.min(player.maxBody, player.body + heal);
-      player.divinity += 4;
-      player.humanity -= 8;
-      log(`🩸 Ти поглинув жертву і відновив ${heal} тіла.`);
-    }
-  }
-];
-
-const spells = [
-  {
-    name: "Контроль розуму",
-    cost: 5,
-    unlock: 0,
-    effect: () => {
-      if (Math.random() < 0.7) {
-        player.followers += 1;
-        log("🧠 Ти підкорив чужий розум. Новий послідовник приєднався.");
-      } else {
-        player.mind = Math.max(0, player.mind - 10);
-        log("⚠️ Розум опирався. Ти втратив частину свідомості.");
-      }
-    }
-  },
-  {
-    name: "Кровний удар",
-    cost: 3,
-    unlock: 0,
-    effect: () => {
-      const gain = rand(3, 8);
-      player.essence += gain;
-      player.body = Math.max(0, player.body - 5);
-      log(`🩸 Ти розірвав власну плоть і отримав ${gain} есенції.`);
-    }
-  },
-  {
-    name: "Бачення",
-    cost: 4,
-    unlock: 10,
-    effect: () => {
-      player.divinity += 2;
-      player.humanity -= 2;
-      log("👁️ Ти побачив фрагмент майбутнього. Воно дивилось у відповідь.");
-    }
-  },
-  {
-    name: "Шепіт Матері",
-    cost: 8,
-    unlock: 25,
-    effect: () => {
-      player.followers += 2;
-      player.mind = Math.max(0, player.mind - 8);
-      log("🌑 Шепіт пройшов крізь людей. Двоє стали твоїми.");
-    }
-  }
-];
-
 const $ = (id) => document.getElementById(id);
 
 const authPanel = $("authPanel");
@@ -121,7 +22,7 @@ const saveBtn = $("saveBtn");
 const logoutBtn = $("logoutBtn");
 
 const cultistName = $("cultistName");
-const ascensionTitle = $("ascensionTitle");
+const chapterText = $("chapterText");
 
 const bodyStat = $("bodyStat");
 const mindStat = $("mindStat");
@@ -129,34 +30,403 @@ const divinityStat = $("divinityStat");
 const humanityStat = $("humanityStat");
 const essenceStat = $("essenceStat");
 const followersStat = $("followersStat");
-const offeringsStat = $("offeringsStat");
-const rankStat = $("rankStat");
+const captivesStat = $("captivesStat");
+const suspicionStat = $("suspicionStat");
 
-const locationName = $("locationName");
-const locationText = $("locationText");
-const locationButtons = $("locationButtons");
+const objectiveText = $("objectiveText");
+const sceneLocation = $("sceneLocation");
+const sceneTitle = $("sceneTitle");
+const sceneText = $("sceneText");
+const choicesBox = $("choicesBox");
 
-const ritualText = $("ritualText");
-const ritualButtons = $("ritualButtons");
-
-const spellText = $("spellText");
-const spellButtons = $("spellButtons");
-
-const mutationText = $("mutationText");
-const cultText = $("cultText");
-const cultButtons = $("cultButtons");
-const pathText = $("pathText");
-
+const mapBox = $("mapBox");
+const conditionBox = $("conditionBox");
 const logBox = $("logBox");
 
-const gatherBtn = $("gatherBtn");
-const preachBtn = $("preachBtn");
-const meditateBtn = $("meditateBtn");
-const restBtn = $("restBtn");
+function createNewPlayer(name = "") {
+  return {
+    name,
+    chapter: 1,
+    location: "sanctuary",
+    scene: "intro",
 
-const whisperInput = $("whisperInput");
-const whisperBtn = $("whisperBtn");
-const whisperBox = $("whisperBox");
+    body: 100,
+    maxBody: 100,
+    mind: 100,
+    maxMind: 100,
+
+    divinity: 0,
+    humanity: 100,
+    essence: 0,
+    followers: 3,
+    captives: 0,
+    suspicion: 0,
+
+    flags: {},
+    mutations: [],
+    history: []
+  };
+}
+
+let player = createNewPlayer();
+
+const locations = {
+  sanctuary: {
+    name: "Підземне Святилище",
+    description: "Серце культу. Тут безпечно, але стіни памʼятають усі ритуали."
+  },
+  village: {
+    name: "Селище Простолюдів",
+    description: "Місце страху, чуток і слабких людей, які ще не знають, що вже стали частиною історії."
+  },
+  forest: {
+    name: "Заборонений Ліс",
+    description: "Темрява між деревами рухається не від вітру. Тут легко знайти есенцію — або втратити розум."
+  },
+  catacombs: {
+    name: "Міські Катакомби",
+    description: "Старі ходи під містом. Тут ховаються вигнанці, контрабандисти і ті, кого ніхто не шукатиме."
+  }
+};
+
+const scenes = {
+  intro: {
+    location: "sanctuary",
+    title: "Перша ніч",
+    text:
+      "Ти стоїш перед вівтарем Великої Матері Плоті. Старі послідовники дивляться мовчки. Вони не знають, чи ти станеш їхнім провідником, чи черговою жертвою.",
+    choices: [
+      {
+        text: "Прийняти обітницю культу",
+        effect: () => {
+          player.flags.oath = true;
+          gain("divinity", 3);
+          lose("humanity", 2);
+          goToScene("sanctuary_hub");
+          log("Ти прийняв обітницю. У темряві щось відповіло.");
+        }
+      },
+      {
+        text: "Запитати, чому богиня мовчить",
+        effect: () => {
+          player.flags.doubt = true;
+          gain("mind", 5);
+          goToScene("sanctuary_hub");
+          log("Старі послідовники відвели очі. Питання було небезпечним.");
+        }
+      }
+    ]
+  },
+
+  sanctuary_hub: {
+    location: "sanctuary",
+    title: "Підземне святилище",
+    text:
+      "Святилище чекає. Послідовники шепочуть молитви. Вівтар голодний. За межами храму є селище, ліс і катакомби.",
+    choices: [
+      {
+        text: "Провести малий ритуал есенції",
+        condition: () => player.essence >= 5,
+        effect: () => {
+          lose("essence", 5);
+          gain("divinity", 8);
+          lose("humanity", 4);
+          maybeMutation();
+          advanceChapter();
+          goToScene("sanctuary_hub");
+          log("Ритуал завершено. Ти відчув, як щось усередині тебе стало менш людським.");
+        }
+      },
+      {
+        text: "Провести кривавий ритуал з полоненим",
+        condition: () => player.captives >= 1,
+        effect: () => {
+          lose("captives", 1);
+          gain("essence", 10);
+          gain("divinity", 12);
+          lose("humanity", 10);
+          gain("suspicion", 8);
+          maybeMutation();
+          advanceChapter();
+          goToScene("sanctuary_hub");
+          log("Полонений зник у темряві під вівтарем. Культ став сильнішим.");
+        }
+      },
+      {
+        text: "Відновити тіло і розум",
+        effect: () => {
+          player.body = player.maxBody;
+          player.mind = player.maxMind;
+          goToScene("sanctuary_hub");
+          log("Ти провів ніч у тиші. Тіло і розум відновлено.");
+        }
+      },
+      {
+        text: "Вийти до селища",
+        effect: () => travel("village", "village_square")
+      },
+      {
+        text: "Піти в Заборонений Ліс",
+        effect: () => travel("forest", "forest_edge")
+      },
+      {
+        text: "Спуститись у катакомби",
+        effect: () => travel("catacombs", "catacombs_gate")
+      }
+    ]
+  },
+
+  village_square: {
+    location: "village",
+    title: "Площа селища",
+    text:
+      "На площі пахне димом і мокрою землею. Біля колодязя сперечаються люди, а варта ліниво стежить за натовпом. Тут можна здобути послідовників — або привернути зайву увагу.",
+    choices: [
+      {
+        text: "Тихо проповідувати серед знедолених",
+        effect: () => {
+          if (roll(60)) {
+            gain("followers", 1);
+            log("Один зі знедолених повірив твоїм словам.");
+          } else {
+            gain("suspicion", 5);
+            lose("mind", 5);
+            log("Твої слова почула не та людина. Підозра зросла.");
+          }
+          goToScene("village_square");
+        }
+      },
+      {
+        text: "Вистежити самотнього простолюдина",
+        effect: () => {
+          if (roll(55)) {
+            gain("captives", 1);
+            gain("suspicion", 8);
+            log("Ти привів полоненого до культу. Але сліди могли помітити.");
+          } else {
+            lose("body", 10);
+            gain("suspicion", 12);
+            log("Жертва вирвалась і здійняла шум. Ти поранений.");
+          }
+          checkDanger();
+          goToScene("village_square");
+        }
+      },
+      {
+        text: "Підкупити пияка за інформацію",
+        condition: () => player.followers >= 1,
+        effect: () => {
+          lose("followers", 1);
+          gain("essence", 4);
+          log("Послідовник зник у нетрях, але повернувся з корисними чутками й темним знаком.");
+          goToScene("village_square");
+        }
+      },
+      {
+        text: "Повернутись у святилище",
+        effect: () => travel("sanctuary", "sanctuary_hub")
+      }
+    ]
+  },
+
+  forest_edge: {
+    location: "forest",
+    title: "Край Забороненого Лісу",
+    text:
+      "Ліс не просто темний — він уважний. Коріння схоже на жили. Тут есенція просочується з землі, але кожен крок тисне на розум.",
+    choices: [
+      {
+        text: "Зібрати чорну есенцію",
+        effect: () => {
+          const amount = rand(4, 9);
+          gain("essence", amount);
+          lose("mind", rand(4, 9));
+          log(`Ти зібрав ${amount} есенції. Ліс щось прошепотів у відповідь.`);
+          goToScene("forest_edge");
+        }
+      },
+      {
+        text: "Прислухатись до шепоту дерев",
+        effect: () => {
+          if (roll(50)) {
+            gain("divinity", 5);
+            lose("humanity", 3);
+            log("Шепіт відкрив тобі частину правди про Матір.");
+          } else {
+            lose("mind", 12);
+            log("Шепіт був занадто глибоким. Розум тріснув.");
+          }
+          maybeMutation();
+          advanceChapter();
+          goToScene("forest_edge");
+        }
+      },
+      {
+        text: "Провести нічне полювання",
+        effect: () => {
+          if (roll(45)) {
+            gain("captives", 1);
+            gain("essence", 3);
+            log("Полювання вдалося. Ліс прийняв твої кроки.");
+          } else {
+            lose("body", 14);
+            log("Щось полювало на тебе у відповідь.");
+          }
+          goToScene("forest_edge");
+        }
+      },
+      {
+        text: "Повернутись у святилище",
+        effect: () => travel("sanctuary", "sanctuary_hub")
+      }
+    ]
+  },
+
+  catacombs_gate: {
+    location: "catacombs",
+    title: "Вхід у катакомби",
+    text:
+      "Під містом немає закону. Лише темрява, старі кістки і люди, яких ніхто не оплакуватиме. Тут легко знайти матеріал для культу, але не всі мешканці катакомб беззахисні.",
+    choices: [
+      {
+        text: "Шукати вигнанців для культу",
+        effect: () => {
+          if (roll(55)) {
+            gain("followers", 2);
+            gain("suspicion", 4);
+            log("Двоє вигнанців прийняли твою обітницю.");
+          } else {
+            lose("body", 10);
+            log("Тебе зустріли ножами і прокляттями.");
+          }
+          goToScene("catacombs_gate");
+        }
+      },
+      {
+        text: "Викрасти безіменного мешканця тунелів",
+        effect: () => {
+          if (roll(65)) {
+            gain("captives", 1);
+            log("Полонений не мав імені. Це навіть зручніше.");
+          } else {
+            lose("body", 8);
+            gain("suspicion", 6);
+            log("У темряві здійнявся шум. Хтось бачив твоє обличчя.");
+          }
+          checkDanger();
+          goToScene("catacombs_gate");
+        }
+      },
+      {
+        text: "Знайти старий знак Матері",
+        effect: () => {
+          gain("essence", 6);
+          gain("divinity", 4);
+          lose("humanity", 2);
+          log("На стіні був знак, старіший за культ. Він відгукнувся.");
+          maybeMutation();
+          advanceChapter();
+          goToScene("catacombs_gate");
+        }
+      },
+      {
+        text: "Повернутись у святилище",
+        effect: () => travel("sanctuary", "sanctuary_hub")
+      }
+    ]
+  },
+
+  hunters_arrive: {
+    location: "village",
+    title: "Мисливці на культ",
+    text:
+      "Підозра стала занадто високою. До селища прибули озброєні мисливці. Вони шукають сліди культу. Якщо вони знайдуть святилище, усе закінчиться.",
+    choices: [
+      {
+        text: "Підставити невинного",
+        effect: () => {
+          lose("humanity", 12);
+          player.suspicion = Math.max(0, player.suspicion - 25);
+          log("Невинного повели на допит. Культ виграв час.");
+          goToScene("sanctuary_hub");
+        }
+      },
+      {
+        text: "Послати послідовників замести сліди",
+        condition: () => player.followers >= 2,
+        effect: () => {
+          lose("followers", 2);
+          player.suspicion = Math.max(0, player.suspicion - 35);
+          log("Двоє послідовників не повернулись. Але сліди зникли.");
+          goToScene("sanctuary_hub");
+        }
+      },
+      {
+        text: "Прийняти бій у темряві",
+        effect: () => {
+          if (player.divinity >= 40 || roll(45)) {
+            player.suspicion = Math.max(0, player.suspicion - 20);
+            gain("essence", 8);
+            log("Мисливці не були готові до того, що вийшло з темряви.");
+          } else {
+            lose("body", 35);
+            lose("followers", 1);
+            log("Бій був важким. Культ вижив, але заплатив кровʼю.");
+          }
+          goToScene("sanctuary_hub");
+        }
+      }
+    ]
+  },
+
+  ascension_choice: {
+    location: "sanctuary",
+    title: "Місце Матері",
+    text:
+      "Вівтар більше не здається великим. Велика Мати слабшає, а культ дивиться вже не на неї — на тебе. Настав момент вибору.",
+    choices: [
+      {
+        text: "Залишитись вірним Матері",
+        effect: () => {
+          player.flags.ending = "servant";
+          log("Ти став її голосом. Культ вижив, але ти не став вільним.");
+          goToScene("ending");
+        }
+      },
+      {
+        text: "Узурпувати її місце",
+        condition: () => player.divinity >= 120 && player.humanity <= 40,
+        effect: () => {
+          player.flags.ending = "god";
+          log("Ти зрадив богиню — і культ упав ниць перед новим божеством.");
+          goToScene("ending");
+        }
+      },
+      {
+        text: "Знищити культ і піти",
+        condition: () => player.humanity >= 60,
+        effect: () => {
+          player.flags.ending = "escape";
+          log("Ти спалив святилище. Але шепіт залишився в тобі.");
+          goToScene("ending");
+        }
+      }
+    ]
+  },
+
+  ending: {
+    location: "sanctuary",
+    title: "Кінець глави",
+    text:
+      "Історія цієї версії завершена. Але культова хроніка може продовжитись: нові глави, вороги, ритуали, політика культу і справжнє вознесіння.",
+    choices: [
+      {
+        text: "Продовжити після фіналу",
+        effect: () => goToScene("sanctuary_hub")
+      }
+    ]
+  }
+};
 
 loginBtn.addEventListener("click", login);
 registerBtn.addEventListener("click", register);
@@ -164,22 +434,12 @@ startBtn.addEventListener("click", startGame);
 saveBtn.addEventListener("click", () => saveGame(true));
 logoutBtn.addEventListener("click", logout);
 
-gatherBtn.addEventListener("click", gather);
-preachBtn.addEventListener("click", preach);
-meditateBtn.addEventListener("click", meditate);
-restBtn.addEventListener("click", rest);
-whisperBtn.addEventListener("click", sendWhisper);
-
 passwordInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") login();
 });
 
 nameInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") startGame();
-});
-
-whisperInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") sendWhisper();
 });
 
 init();
@@ -211,7 +471,7 @@ async function init() {
     };
 
     showGame();
-    log(`🌒 Вітаємо, ${currentUser}. Збереження завантажено.`);
+    log(`Вітаємо, ${currentUser}. Хроніку завантажено.`);
   } else {
     showStart();
   }
@@ -236,9 +496,8 @@ async function register() {
   localStorage.setItem(TOKEN_KEY, authToken);
   localStorage.setItem(USER_KEY, currentUser);
 
-  authMessage.textContent = "";
   player = createNewPlayer();
-
+  authMessage.textContent = "";
   showStart();
   render();
 }
@@ -267,9 +526,8 @@ async function login() {
       ...createNewPlayer(),
       ...result.save
     };
-
     showGame();
-    log(`🌒 Вітаємо, ${currentUser}. Збереження завантажено.`);
+    log("Хроніку завантажено.");
   } else {
     player = createNewPlayer();
     showStart();
@@ -288,13 +546,7 @@ function logout() {
   currentUser = null;
   player = createNewPlayer();
 
-  if (logBox) logBox.innerHTML = "";
-  if (whisperBox) whisperBox.innerHTML = "";
-
-  loginInput.value = "";
-  passwordInput.value = "";
-  authMessage.textContent = "";
-
+  logBox.innerHTML = "";
   showAuth();
   render();
 }
@@ -308,10 +560,8 @@ function startGame() {
   }
 
   player = createNewPlayer(name);
-
   showGame();
-  log("🕯️ Ти увійшов у культ. Шлях назад зник.");
-
+  log("Історія почалась у підземному святилищі.");
   saveGame(false);
   render();
 }
@@ -322,13 +572,11 @@ async function saveGame(showLog = true) {
   const result = await apiPost("/api/save", { save: player });
 
   if (!result.ok) {
-    log("❌ Не вдалося зберегти гру.");
+    log("Не вдалося зберегти гру.");
     return;
   }
 
-  if (showLog) {
-    log("💾 Свідомість збережено на сервері.");
-  }
+  if (showLog) log("Хроніку збережено.");
 }
 
 async function apiGetSave() {
@@ -341,7 +589,7 @@ async function apiGetSave() {
 
     return await response.json();
   } catch {
-    return { ok: false, error: "Сервер недоступний" };
+    return { ok: false };
   }
 }
 
@@ -386,120 +634,44 @@ function showGame() {
   gamePanel.classList.remove("hidden");
 }
 
-function gather() {
-  if (player.body <= 0) {
-    log("💀 Тіло не слухається. Потрібно відновитись.");
-    return;
-  }
-
-  const roll = Math.random();
-
-  if (roll < 0.35) {
-    player.offerings += 1;
-    log("🧍 Ти привів нову жертву до святилища.");
-  } else if (roll < 0.68) {
-    const essence = rand(2, 7);
-    player.essence += essence;
-    log(`🩸 Ти зібрав ${essence} есенції з темних місць.`);
-  } else if (roll < 0.85) {
-    player.followers += 1;
-    log("👥 Заблукалий почув твої слова і став послідовником.");
-  } else {
-    const damage = rand(6, 14);
-    player.body = Math.max(0, player.body - damage);
-    log(`⚠️ Щось у темряві атакувало тебе. Тіло -${damage}.`);
-  }
-
+function travel(locationId, sceneId) {
+  player.location = locationId;
+  player.scene = sceneId;
   saveGame(false);
   render();
 }
 
-function preach() {
-  if (player.mind < 10) {
-    log("🧠 Твій розум занадто виснажений для проповіді.");
-    return;
-  }
-
-  player.mind = Math.max(0, player.mind - 10);
-
-  if (Math.random() < 0.55) {
-    player.followers += 1;
-    log("👥 Новий послідовник приєднався до культу.");
-  } else {
-    player.humanity = Math.max(0, player.humanity - 5);
-    player.essence += 2;
-    log("⚖️ Ти зламав чужу волю. Людяність зменшилась, есенція зросла.");
-  }
-
+function goToScene(sceneId) {
+  player.scene = sceneId;
   saveGame(false);
   render();
 }
 
-function meditate() {
-  if (player.essence < 5) {
-    log("👁️ Недостатньо есенції для медитації.");
-    return;
-  }
+function choose(choice) {
+  if (choice.condition && !choice.condition()) return;
 
-  player.essence -= 5;
-  player.divinity += rand(2, 6);
-  player.humanity = Math.max(0, player.humanity - 3);
-  player.mind = Math.max(0, player.mind - 4);
-
-  log("👁️ Ти наблизився до божественного. Воно наблизилось у відповідь.");
-
-  afterPowerGain();
-}
-
-function rest() {
-  player.body = Math.min(player.maxBody, player.body + 25);
-  player.mind = Math.min(player.maxMind, player.mind + 25);
-
-  log("🕯️ Ти відновив тіло і розум у тиші святилища.");
-  saveGame(false);
-  render();
-}
-
-function performRitual(ritual) {
-  if (
-    (ritual.cost.offerings || 0) > player.offerings ||
-    (ritual.cost.essence || 0) > player.essence
-  ) {
-    log("❌ Недостатньо ресурсів для ритуалу.");
-    return;
-  }
-
-  player.offerings -= ritual.cost.offerings || 0;
-  player.essence -= ritual.cost.essence || 0;
-
-  ritual.effect();
-  afterPowerGain();
-}
-
-function castSpell(spell) {
-  if (player.divinity < spell.unlock) {
-    log("🔒 Ти ще не готовий до цього заклинання.");
-    return;
-  }
-
-  if (player.essence < spell.cost) {
-    log("❌ Недостатньо есенції для заклинання.");
-    return;
-  }
-
-  player.essence -= spell.cost;
-  spell.effect();
-
-  afterPowerGain();
-}
-
-function afterPowerGain() {
+  choice.effect();
   normalizeStats();
-  checkMutation();
-  checkRank();
-  checkEndingHint();
+  checkDanger();
+  checkAscensionChoice();
   saveGame(false);
   render();
+}
+
+function gain(stat, amount) {
+  player[stat] += amount;
+}
+
+function lose(stat, amount) {
+  player[stat] -= amount;
+}
+
+function roll(percent) {
+  return Math.random() * 100 < percent;
+}
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function normalizeStats() {
@@ -509,56 +681,83 @@ function normalizeStats() {
   player.divinity = Math.max(0, player.divinity);
   player.essence = Math.max(0, player.essence);
   player.followers = Math.max(0, player.followers);
-  player.offerings = Math.max(0, player.offerings);
+  player.captives = Math.max(0, player.captives);
+  player.suspicion = clamp(player.suspicion, 0, 100);
 }
 
-function checkMutation() {
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function maybeMutation() {
   if (player.divinity >= 20 && !player.mutations.includes("Очі відкриті")) {
     player.mutations.push("Очі відкриті");
-    log("🧬 Мутація: твої очі бачать більше, ніж дозволено людині.");
+    player.maxMind += 10;
+    log("Мутація: очі бачать те, чого не має бачити людина.");
   }
 
-  if (player.divinity >= 50 && !player.mutations.includes("Пульс плоті")) {
+  if (player.divinity >= 60 && !player.mutations.includes("Пульс плоті")) {
     player.mutations.push("Пульс плоті");
     player.maxBody += 20;
     player.body = player.maxBody;
-    log("🧬 Мутація: плоть почала пульсувати чужою силою. Максимальне тіло збільшено.");
+    log("Мутація: плоть пульсує силою вівтаря.");
   }
 
-  if (player.divinity >= 90 && !player.mutations.includes("Голос у крові")) {
+  if (player.divinity >= 100 && !player.mutations.includes("Голос у крові")) {
     player.mutations.push("Голос у крові");
-    player.maxMind += 20;
-    player.mind = player.maxMind;
-    log("🧬 Мутація: голос у крові навчив тебе витримувати більше. Максимальний розум збільшено.");
+    player.followers += 2;
+    log("Мутація: послідовники чують твій голос навіть уві сні.");
   }
 }
 
-function checkRank() {
-  if (player.divinity >= 60 && player.rank === 1) {
-    player.rank = 2;
-    log("📖 Ти став Жрецем Культу.");
+function advanceChapter() {
+  if (player.chapter === 1 && player.divinity >= 30 && player.followers >= 5) {
+    player.chapter = 2;
+    log("Глава II: селище починає боятись і шепотіти про культ.");
   }
 
-  if (player.divinity >= 120 && player.rank === 2) {
-    player.rank = 3;
-    log("📖 Ти став Провідником Плоті.");
-  }
-
-  if (player.divinity >= 200 && player.rank === 3) {
-    player.rank = 4;
-    log("👁️ Ти став Напівбогом. Послідовники вже не дивляться тобі в очі.");
+  if (player.chapter === 2 && player.divinity >= 80) {
+    player.chapter = 3;
+    log("Глава III: ти відчуваєш слабкість Великої Матері.");
   }
 }
 
-function checkEndingHint() {
-  if (player.divinity >= 250 && player.humanity <= 20) {
-    log("🌑 Велика Мати слабшає. Ти відчуваєш: її місце може стати твоїм.");
+function checkDanger() {
+  if (player.suspicion >= 70 && player.scene !== "hunters_arrive") {
+    player.scene = "hunters_arrive";
+    log("Підозра стала критичною. Мисливці прибули.");
+  }
+
+  if (player.body <= 0) {
+    player.body = 1;
+    player.mind = Math.max(0, player.mind - 15);
+    player.scene = "sanctuary_hub";
+    log("Тебе принесли назад у святилище. Тіло майже зламане.");
+  }
+
+  if (player.mind <= 0) {
+    player.mind = 1;
+    player.humanity = Math.max(0, player.humanity - 10);
+    player.scene = "sanctuary_hub";
+    log("Твій розум провалився в темряву. Ти повернувся іншим.");
+  }
+}
+
+function checkAscensionChoice() {
+  if (
+    player.chapter >= 3 &&
+    player.divinity >= 120 &&
+    player.scene !== "ascension_choice" &&
+    player.scene !== "ending"
+  ) {
+    player.scene = "ascension_choice";
+    log("Настав момент вибору: служити чи зайняти місце богині.");
   }
 }
 
 function render() {
   cultistName.textContent = player.name || "Адепт";
-  ascensionTitle.textContent = getTitle();
+  chapterText.textContent = getChapterName();
 
   bodyStat.textContent = `${player.body}/${player.maxBody}`;
   mindStat.textContent = `${player.mind}/${player.maxMind}`;
@@ -566,141 +765,103 @@ function render() {
   humanityStat.textContent = player.humanity;
   essenceStat.textContent = player.essence;
   followersStat.textContent = player.followers;
-  offeringsStat.textContent = player.offerings;
-  rankStat.textContent = roman(player.rank);
+  captivesStat.textContent = player.captives;
+  suspicionStat.textContent = player.suspicion;
 
-  renderLocation();
-  renderRituals();
-  renderSpells();
-  renderMutations();
-  renderCult();
-  renderPath();
+  renderObjective();
+  renderScene();
+  renderMap();
+  renderCondition();
 }
 
-function renderLocation() {
-  locationName.textContent = "Підземне Святилище";
-  locationText.textContent =
-    "Під землею дихає храм. Стіни вологі, свічки не гаснуть, а в центрі стоїть вівтар Великої Матері Плоті.";
-
-  locationButtons.innerHTML = "";
-}
-
-function renderRituals() {
-  ritualButtons.innerHTML = "";
-  ritualText.textContent = "Ритуали перетворюють жертви й есенцію на силу, але кожен крок забирає щось людське.";
-
-  rituals.forEach((ritual) => {
-    const button = document.createElement("button");
-    const offerings = ritual.cost.offerings || 0;
-    const essence = ritual.cost.essence || 0;
-
-    button.textContent = `🩸 ${ritual.name} (${offerings} жертв, ${essence} есенції)`;
-    button.addEventListener("click", () => performRitual(ritual));
-
-    ritualButtons.appendChild(button);
-  });
-}
-
-function renderSpells() {
-  spellButtons.innerHTML = "";
-  spellText.textContent = "Заклинання витрачають есенцію. Нові відкриваються разом із божественністю.";
-
-  spells.forEach((spell) => {
-    const button = document.createElement("button");
-
-    if (player.divinity < spell.unlock) {
-      button.textContent = `🔒 ${spell.name} (${spell.unlock} божественності)`;
-    } else {
-      button.textContent = `✨ ${spell.name} (${spell.cost} есенції)`;
-    }
-
-    button.addEventListener("click", () => castSpell(spell));
-    spellButtons.appendChild(button);
-  });
-}
-
-function renderMutations() {
-  mutationText.innerHTML = "";
-
-  if (!player.mutations.length) {
-    mutationText.textContent = "Тіло ще зберігає людську форму.";
-    return;
+function renderObjective() {
+  if (player.chapter === 1) {
+    objectiveText.textContent =
+      "Глава I: Народження культу. Отримай 5 послідовників і 30 божественності.";
+  } else if (player.chapter === 2) {
+    objectiveText.textContent =
+      "Глава II: Тінь над селищем. Посилюй культ, але не дай підозрі знищити тебе.";
+  } else {
+    objectiveText.textContent =
+      "Глава III: Зрада Матері. Виріши, чи служити старій богині, чи стати новим божеством.";
   }
+}
 
-  player.mutations.forEach((mutation) => {
-    const p = document.createElement("p");
-    p.textContent = `🧬 ${mutation}`;
-    mutationText.appendChild(p);
+function renderScene() {
+  const scene = scenes[player.scene] || scenes.intro;
+  const location = locations[scene.location];
+
+  sceneLocation.textContent = location.name;
+  sceneTitle.textContent = scene.title;
+  sceneText.textContent = scene.text;
+
+  choicesBox.innerHTML = "";
+
+  scene.choices.forEach((choice) => {
+    if (choice.condition && !choice.condition()) return;
+
+    const button = document.createElement("button");
+    button.textContent = choice.text;
+    button.addEventListener("click", () => choose(choice));
+
+    choicesBox.appendChild(button);
   });
 }
 
-function renderCult() {
-  cultText.textContent =
-    `Культ має ${player.followers} послідовників і ${player.offerings} підготовлених жертв. ` +
-    `Чим менше людяності, тим сильніше вони бояться тебе.`;
+function renderMap() {
+  mapBox.innerHTML = "";
 
-  cultButtons.innerHTML = "";
+  Object.entries(locations).forEach(([id, location]) => {
+    const button = document.createElement("button");
+    button.className = "map-button";
+    if (id === player.location) button.classList.add("active");
+
+    button.textContent = location.name;
+    button.addEventListener("click", () => {
+      if (id === "sanctuary") travel("sanctuary", "sanctuary_hub");
+      if (id === "village") travel("village", "village_square");
+      if (id === "forest") travel("forest", "forest_edge");
+      if (id === "catacombs") travel("catacombs", "catacombs_gate");
+    });
+
+    mapBox.appendChild(button);
+  });
 }
 
-function renderPath() {
-  pathText.innerHTML = `
-    <p><span class="divine">Мета:</span> стати сильнішим за Велику Матір Плоті.</p>
-    <p><span class="warning">Поточний шлях:</span> ${getPathDescription()}</p>
-    <p><span class="blood">Наступна межа:</span> ${getNextGoal()}</p>
+function renderCondition() {
+  const dangerClass = player.suspicion >= 70 ? "bad" : player.suspicion >= 40 ? "warn" : "good";
+  const humanityClass = player.humanity <= 30 ? "bad" : player.humanity <= 60 ? "warn" : "good";
+
+  conditionBox.innerHTML = `
+    <p class="condition-line">Підозра світу: <span class="${dangerClass}">${getSuspicionText()}</span></p>
+    <p class="condition-line">Людяність: <span class="${humanityClass}">${getHumanityText()}</span></p>
+    <p class="condition-line">Мутації: ${player.mutations.length ? player.mutations.join(", ") : "немає"}</p>
   `;
 }
 
-function getPathDescription() {
-  if (player.divinity >= 200) return "ти вже більше не людина";
-  if (player.divinity >= 120) return "культ бачить у тобі майбутнє божество";
-  if (player.divinity >= 60) return "ти став центром культу";
-  if (player.divinity >= 20) return "плоть почала відповідати";
-  return "ти лише торкнувся забороненого";
+function getSuspicionText() {
+  if (player.suspicion >= 70) return "критична";
+  if (player.suspicion >= 40) return "небезпечна";
+  return "низька";
 }
 
-function getNextGoal() {
-  if (player.divinity < 20) return "20 божественності — перша мутація";
-  if (player.divinity < 60) return "60 божественності — ранг Жреця";
-  if (player.divinity < 120) return "120 божественності — Провідник Плоті";
-  if (player.divinity < 200) return "200 божественності — Напівбог";
-  return "250 божественності і низька людяність — шлях узурпатора";
+function getHumanityText() {
+  if (player.humanity <= 30) return "майже втрачена";
+  if (player.humanity <= 60) return "пошкоджена";
+  return "стабільна";
 }
 
-function sendWhisper() {
-  const text = whisperInput.value.trim();
-  if (!text) return;
-
-  const p = document.createElement("p");
-  p.textContent = `${player.name || currentUser || "Гість"}: ${text}`;
-  whisperBox.appendChild(p);
-
-  whisperInput.value = "";
-  whisperBox.scrollTop = whisperBox.scrollHeight;
+function getChapterName() {
+  if (player.chapter === 1) return "Глава I: Народження культу";
+  if (player.chapter === 2) return "Глава II: Тінь над селищем";
+  return "Глава III: Зрада Матері";
 }
 
 function log(text) {
-  if (!logBox) return;
-
   const p = document.createElement("p");
   p.textContent = text;
   logBox.prepend(p);
-}
 
-function rand(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function roman(num) {
-  return ["I", "II", "III", "IV", "V"][num - 1] || num;
-}
-
-function getTitle() {
-  if (player.rank >= 4) return "Напівбог Плоті";
-  if (player.rank === 3) return "Провідник Плоті";
-  if (player.rank === 2) return "Жрець Культу";
-  return "Немічний послідовник";
+  player.history.unshift(text);
+  player.history = player.history.slice(0, 60);
 }
