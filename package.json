@@ -1,12 +1,13 @@
 {
-  "name": "text-rpg-server",
+  "name": "cultgame",
   "version": "1.0.0",
-  "description": "Browser text RPG",
+  "description": "Cult horror RPG",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "express": "^4.18.3"
   }
 }
