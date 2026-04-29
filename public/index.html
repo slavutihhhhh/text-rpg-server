@@ -3,28 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CultGame</title>
+  <title>CultGame v2</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <div class="app">
     <header class="hero">
-      <p class="eyebrow">Dark Horror Cult RPG</p>
+      <p class="eyebrow">CultGame v2: Story Engine</p>
       <h1>🕯️ Cult of Flesh: Ascension</h1>
       <p class="subtitle">
-        Реєструйся, входь у культ і веди свого адепта до божественності.
+        Текстова гра про культ, вибір, страх, підозру і шлях до божественності.
       </p>
     </header>
 
     <main class="layout">
-      <section class="panel" id="authPanel">
+      <section class="panel auth-panel" id="authPanel">
         <h2>Вхід / Реєстрація</h2>
         <p>Введи логін і пароль.</p>
 
-        <div class="auth-box">
-          <input id="loginInput" type="text" placeholder="Логін" />
-          <input id="passwordInput" type="password" placeholder="Пароль" />
-        </div>
+        <input id="loginInput" type="text" placeholder="Логін" />
+        <input id="passwordInput" type="password" placeholder="Пароль" />
 
         <div class="actions">
           <button id="loginBtn">Увійти</button>
@@ -36,20 +34,25 @@
 
       <section class="panel hidden" id="startPanel">
         <h2>Пробудження</h2>
-        <p>Назви імʼя того, хто переступить межу людського.</p>
+        <p>
+          Ти стоїш перед вівтарем у підземному святилищі.
+          Старий культ шукає нового провідника.
+        </p>
 
-        <div class="row">
-          <input id="nameInput" type="text" placeholder="Імʼя адепта" />
-          <button id="startBtn">Увійти в культ</button>
+        <input id="nameInput" type="text" placeholder="Імʼя адепта" />
+
+        <div class="actions">
+          <button id="startBtn">Почати історію</button>
         </div>
       </section>
 
-      <section class="panel hidden" id="gamePanel">
+      <section class="panel story-panel hidden" id="gamePanel">
         <div class="topline">
           <div>
             <h2 id="cultistName">Адепт</h2>
-            <p id="ascensionTitle">Немічний послідовник</p>
+            <p id="chapterText">Глава I</p>
           </div>
+
           <div class="actions">
             <button id="saveBtn">💾 Зберегти</button>
             <button id="logoutBtn">🚪 Вийти</button>
@@ -63,62 +66,33 @@
           <div class="stat"><span>⚖️ Людяність</span><strong id="humanityStat">100</strong></div>
           <div class="stat"><span>🩸 Есенція</span><strong id="essenceStat">0</strong></div>
           <div class="stat"><span>👥 Послідовники</span><strong id="followersStat">3</strong></div>
-          <div class="stat"><span>🧍 Жертви</span><strong id="offeringsStat">0</strong></div>
-          <div class="stat"><span>📖 Ранг</span><strong id="rankStat">I</strong></div>
+          <div class="stat"><span>🧍 Полонені</span><strong id="captivesStat">0</strong></div>
+          <div class="stat danger"><span>👁️ Підозра</span><strong id="suspicionStat">0</strong></div>
         </div>
 
-        <div class="location-card">
-          <h3 id="locationName">Підземне Святилище</h3>
-          <p id="locationText"></p>
-          <div class="actions" id="locationButtons"></div>
+        <div class="objective-box">
+          <h3>🎯 Поточна мета</h3>
+          <p id="objectiveText"></p>
         </div>
 
-        <div class="gameplay-grid">
-          <div class="mini-card">
-            <h3>🩸 Ритуали</h3>
-            <p id="ritualText"></p>
-            <div class="actions" id="ritualButtons"></div>
-          </div>
+        <div class="scene-box">
+          <p class="scene-location" id="sceneLocation">Підземне Святилище</p>
+          <h2 id="sceneTitle">Назва сцени</h2>
+          <p id="sceneText"></p>
 
-          <div class="mini-card">
-            <h3>📖 Заклинання</h3>
-            <p id="spellText"></p>
-            <div class="actions" id="spellButtons"></div>
-          </div>
-
-          <div class="mini-card">
-            <h3>🧬 Мутації</h3>
-            <div id="mutationText">Тіло ще зберігає людську форму.</div>
-          </div>
-
-          <div class="mini-card">
-            <h3>🕯️ Культ</h3>
-            <p id="cultText"></p>
-            <div class="actions" id="cultButtons"></div>
-          </div>
-        </div>
-
-        <div class="actions main-actions">
-          <button id="gatherBtn">🌑 Вийти на пошуки</button>
-          <button id="preachBtn">🗣️ Проповідувати</button>
-          <button id="meditateBtn">👁️ Медитувати</button>
-          <button id="restBtn">🕯️ Відновитись</button>
+          <div class="choices" id="choicesBox"></div>
         </div>
       </section>
 
       <aside class="panel side-panel">
-        <h2>🌒 Шлях Вознесіння</h2>
-        <div id="pathText"></div>
+        <h2>🗺️ Карта</h2>
+        <div id="mapBox"></div>
 
-        <h2>📜 Хроніка культу</h2>
+        <h2>🧬 Стан</h2>
+        <div id="conditionBox"></div>
+
+        <h2>📜 Журнал</h2>
         <div class="log" id="logBox"></div>
-
-        <h2>💬 Шепіт</h2>
-        <div class="row">
-          <input id="whisperInput" type="text" placeholder="Написати шепіт..." />
-          <button id="whisperBtn">Send</button>
-        </div>
-        <div class="chat" id="whisperBox"></div>
       </aside>
     </main>
   </div>
