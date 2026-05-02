@@ -3,56 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CultGame v2</title>
+  <title>Karavel</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <div class="app">
     <header class="hero">
-      <p class="eyebrow">CultGame v2: Story Engine</p>
-      <h1>🕯️ Cult of Flesh: Ascension</h1>
-      <p class="subtitle">
-        Текстова гра про культ, вибір, страх, підозру і шлях до божественності.
-      </p>
+      <p class="eyebrow">Medieval Sandbox RPG</p>
+      <h1>🏰 Каравел</h1>
+      <p class="subtitle">Твоє життя. Твоя історія. Світ пам’ятає.</p>
     </header>
 
     <main class="layout">
-      <section class="panel auth-panel" id="authPanel">
+      <section class="panel" id="authPanel">
         <h2>Вхід / Реєстрація</h2>
-        <p>Введи логін і пароль.</p>
-
-        <input id="loginInput" type="text" placeholder="Логін" />
+        <input id="loginInput" placeholder="Логін" />
         <input id="passwordInput" type="password" placeholder="Пароль" />
-
         <div class="actions">
           <button id="loginBtn">Увійти</button>
           <button id="registerBtn">Зареєструватись</button>
         </div>
-
-        <p id="authMessage" class="warning"></p>
+        <p id="authMessage" class="warn"></p>
       </section>
 
       <section class="panel hidden" id="startPanel">
-        <h2>Пробудження</h2>
-        <p>
-          Ти стоїш перед вівтарем у підземному святилищі.
-          Старий культ шукає нового провідника.
-        </p>
+        <h2>Створення персонажа</h2>
+        <input id="nameInput" placeholder="Імʼя персонажа" />
 
-        <input id="nameInput" type="text" placeholder="Імʼя адепта" />
+        <p>Передісторія:</p>
+        <select id="backgroundSelect">
+          <option value="peasant">Син селянина</option>
+          <option value="smith_apprentice">Учень коваля</option>
+          <option value="soldier">Колишній солдат</option>
+          <option value="thief">Дрібний злодій</option>
+          <option value="merchant_kin">Родич купця</option>
+        </select>
 
-        <div class="actions">
-          <button id="startBtn">Почати історію</button>
-        </div>
+        <button id="startBtn">Прокинутись у Каравелі</button>
       </section>
 
-      <section class="panel story-panel hidden" id="gamePanel">
+      <section class="panel hidden" id="gamePanel">
         <div class="topline">
           <div>
-            <h2 id="cultistName">Адепт</h2>
-            <p id="chapterText">Глава I</p>
+            <h2 id="playerName">Гравець</h2>
+            <p id="locationText">Площа Каравела</p>
           </div>
-
           <div class="actions">
             <button id="saveBtn">💾 Зберегти</button>
             <button id="logoutBtn">🚪 Вийти</button>
@@ -60,38 +55,30 @@
         </div>
 
         <div class="stats-grid">
-          <div class="stat"><span>❤️ Тіло</span><strong id="bodyStat">100/100</strong></div>
-          <div class="stat"><span>🧠 Розум</span><strong id="mindStat">100/100</strong></div>
-          <div class="stat"><span>👁️ Божественність</span><strong id="divinityStat">0</strong></div>
-          <div class="stat"><span>⚖️ Людяність</span><strong id="humanityStat">100</strong></div>
-          <div class="stat"><span>🩸 Есенція</span><strong id="essenceStat">0</strong></div>
-          <div class="stat"><span>👥 Послідовники</span><strong id="followersStat">3</strong></div>
-          <div class="stat"><span>🧍 Полонені</span><strong id="captivesStat">0</strong></div>
-          <div class="stat danger"><span>👁️ Підозра</span><strong id="suspicionStat">0</strong></div>
+          <div class="stat"><span>❤️ Здоровʼя</span><strong id="healthStat"></strong></div>
+          <div class="stat"><span>⚡ Енергія</span><strong id="energyStat"></strong></div>
+          <div class="stat"><span>💰 Золото</span><strong id="goldStat"></strong></div>
+          <div class="stat"><span>⭐ Рівень</span><strong id="levelStat"></strong></div>
+          <div class="stat"><span>📘 Досвід</span><strong id="xpStat"></strong></div>
+          <div class="stat"><span>👁️ Підозра</span><strong id="suspicionStat"></strong></div>
         </div>
 
-        <div class="objective-box">
-          <h3>🎯 Поточна мета</h3>
-          <p id="objectiveText"></p>
-        </div>
-
-        <div class="scene-box">
-          <p class="scene-location" id="sceneLocation">Підземне Святилище</p>
-          <h2 id="sceneTitle">Назва сцени</h2>
+        <div class="scene">
+          <p class="scene-place" id="scenePlace"></p>
+          <h2 id="sceneTitle"></h2>
           <p id="sceneText"></p>
-
           <div class="choices" id="choicesBox"></div>
         </div>
       </section>
 
       <aside class="panel side-panel">
-        <h2>🗺️ Карта</h2>
-        <div id="mapBox"></div>
+        <h2>🧍 Люди</h2>
+        <div id="peopleBox"></div>
 
-        <h2>🧬 Стан</h2>
-        <div id="conditionBox"></div>
+        <h2>📦 Стан світу</h2>
+        <div id="worldBox"></div>
 
-        <h2>📜 Журнал</h2>
+        <h2>📜 Памʼять світу</h2>
         <div class="log" id="logBox"></div>
       </aside>
     </main>
