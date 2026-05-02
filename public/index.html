@@ -7,30 +7,41 @@
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="hero">
-      <p class="eyebrow">Medieval Sandbox RPG</p>
-      <h1>🏰 Каравел</h1>
-      <p class="subtitle">Твоє життя. Твоя історія. Світ пам’ятає.</p>
+  <div class="shell">
+    <header class="top">
+      <div>
+        <p class="eyebrow">Karavel v2</p>
+        <h1>Каравел</h1>
+      </div>
+      <p class="tagline">Твоє життя. Твоя історія. Світ памʼятає.</p>
     </header>
 
-    <main class="layout">
-      <section class="panel" id="authPanel">
+    <main class="app">
+      <section class="screen" id="authPanel">
         <h2>Вхід / Реєстрація</h2>
-        <input id="loginInput" placeholder="Логін" />
+        <p class="muted">Увійди, щоб світ Каравела памʼятав твої рішення.</p>
+
+        <input id="loginInput" type="text" placeholder="Логін" />
         <input id="passwordInput" type="password" placeholder="Пароль" />
-        <div class="actions">
+
+        <div class="row">
           <button id="loginBtn">Увійти</button>
           <button id="registerBtn">Зареєструватись</button>
         </div>
-        <p id="authMessage" class="warn"></p>
+
+        <p id="authMessage" class="notice"></p>
       </section>
 
-      <section class="panel hidden" id="startPanel">
-        <h2>Створення персонажа</h2>
-        <input id="nameInput" placeholder="Імʼя персонажа" />
+      <section class="screen hidden" id="startPanel">
+        <h2>Пробудження</h2>
+        <p class="story">
+          Ти прокидаєшся на холодній камʼяній площі Каравела.  
+          Поки що ти ніхто. Але це місто ще не знає, ким ти станеш.
+        </p>
 
-        <p>Передісторія:</p>
+        <input id="nameInput" type="text" placeholder="Імʼя персонажа" />
+
+        <label for="backgroundSelect">Передісторія</label>
         <select id="backgroundSelect">
           <option value="peasant">Син селянина</option>
           <option value="smith_apprentice">Учень коваля</option>
@@ -39,48 +50,49 @@
           <option value="merchant_kin">Родич купця</option>
         </select>
 
-        <button id="startBtn">Прокинутись у Каравелі</button>
+        <button id="startBtn">Почати життя в Каравелі</button>
       </section>
 
-      <section class="panel hidden" id="gamePanel">
-        <div class="topline">
-          <div>
-            <h2 id="playerName">Гравець</h2>
-            <p id="locationText">Площа Каравела</p>
-          </div>
-          <div class="actions">
-            <button id="saveBtn">💾 Зберегти</button>
-            <button id="logoutBtn">🚪 Вийти</button>
-          </div>
-        </div>
+      <section class="game hidden" id="gamePanel">
+        <aside class="left">
+          <h2 id="playerName">Безіменний</h2>
+          <p id="playerOrigin" class="muted"></p>
 
-        <div class="stats-grid">
-          <div class="stat"><span>❤️ Здоровʼя</span><strong id="healthStat"></strong></div>
-          <div class="stat"><span>⚡ Енергія</span><strong id="energyStat"></strong></div>
-          <div class="stat"><span>💰 Золото</span><strong id="goldStat"></strong></div>
-          <div class="stat"><span>⭐ Рівень</span><strong id="levelStat"></strong></div>
-          <div class="stat"><span>📘 Досвід</span><strong id="xpStat"></strong></div>
-          <div class="stat"><span>👁️ Підозра</span><strong id="suspicionStat"></strong></div>
-        </div>
+          <div class="stats">
+            <div><span>Здоровʼя</span><strong id="healthStat"></strong></div>
+            <div><span>Енергія</span><strong id="energyStat"></strong></div>
+            <div><span>Золото</span><strong id="goldStat"></strong></div>
+            <div><span>Рівень</span><strong id="levelStat"></strong></div>
+            <div><span>Досвід</span><strong id="xpStat"></strong></div>
+            <div><span>Підозра</span><strong id="suspicionStat"></strong></div>
+          </div>
 
-        <div class="scene">
-          <p class="scene-place" id="scenePlace"></p>
-          <h2 id="sceneTitle"></h2>
-          <p id="sceneText"></p>
-          <div class="choices" id="choicesBox"></div>
-        </div>
+          <h3>Люди</h3>
+          <div id="peopleBox" class="stack"></div>
+
+          <h3>Світ</h3>
+          <div id="worldBox" class="stack"></div>
+
+          <div class="row">
+            <button id="saveBtn">Зберегти</button>
+            <button id="logoutBtn">Вийти</button>
+          </div>
+        </aside>
+
+        <section class="center">
+          <p class="place" id="placeLabel"></p>
+          <h2 id="locationTitle"></h2>
+
+          <div id="mainText" class="story"></div>
+
+          <div class="actions" id="actionsBox"></div>
+        </section>
+
+        <aside class="right">
+          <h3>Памʼять</h3>
+          <div class="memory" id="memoryBox"></div>
+        </aside>
       </section>
-
-      <aside class="panel side-panel">
-        <h2>🧍 Люди</h2>
-        <div id="peopleBox"></div>
-
-        <h2>📦 Стан світу</h2>
-        <div id="worldBox"></div>
-
-        <h2>📜 Памʼять світу</h2>
-        <div class="log" id="logBox"></div>
-      </aside>
     </main>
   </div>
 
