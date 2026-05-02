@@ -1,5 +1,5 @@
-const TOKEN_KEY = "cultgame_token";
-const USER_KEY = "cultgame_user";
+const TOKEN_KEY = "karavel_token";
+const USER_KEY = "karavel_user";
 
 let authToken = localStorage.getItem(TOKEN_KEY);
 let currentUser = localStorage.getItem(USER_KEY);
@@ -17,552 +17,618 @@ const registerBtn = $("registerBtn");
 const authMessage = $("authMessage");
 
 const nameInput = $("nameInput");
+const backgroundSelect = $("backgroundSelect");
 const startBtn = $("startBtn");
 const saveBtn = $("saveBtn");
 const logoutBtn = $("logoutBtn");
 
-const cultistName = $("cultistName");
-const chapterText = $("chapterText");
+const playerName = $("playerName");
+const locationText = $("locationText");
 
-const bodyStat = $("bodyStat");
-const mindStat = $("mindStat");
-const divinityStat = $("divinityStat");
-const humanityStat = $("humanityStat");
-const essenceStat = $("essenceStat");
-const followersStat = $("followersStat");
-const captivesStat = $("captivesStat");
+const healthStat = $("healthStat");
+const energyStat = $("energyStat");
+const goldStat = $("goldStat");
+const levelStat = $("levelStat");
+const xpStat = $("xpStat");
 const suspicionStat = $("suspicionStat");
 
-const objectiveText = $("objectiveText");
-const sceneLocation = $("sceneLocation");
+const scenePlace = $("scenePlace");
 const sceneTitle = $("sceneTitle");
 const sceneText = $("sceneText");
 const choicesBox = $("choicesBox");
 
-const mapBox = $("mapBox");
-const conditionBox = $("conditionBox");
+const peopleBox = $("peopleBox");
+const worldBox = $("worldBox");
 const logBox = $("logBox");
 
-function createNewPlayer(name = "") {
-  return {
+function createNewPlayer(name = "", background = "peasant") {
+  const player = {
     name,
-    chapter: 1,
-    path: null,
-    location: "sanctuary",
-    scene: "intro",
+    background,
+    scene: "wake_square",
+    location: "Площа Каравела",
 
-    body: 100,
-    maxBody: 100,
-    mind: 100,
-    maxMind: 100,
-
-    divinity: 0,
-    humanity: 100,
-    essence: 0,
-    followers: 3,
-    captives: 0,
+    health: 100,
+    maxHealth: 100,
+    energy: 100,
+    maxEnergy: 100,
+    gold: 8,
+    level: 1,
+    xp: 0,
     suspicion: 0,
 
-    motherFavor: 0,
-    rebelPower: 0,
-    redemption: 0,
+    relations: {
+      roba: 0,
+      radiy: 0,
+      doctor: 0,
+      guard: 0
+    },
 
-    flags: {},
-    mutations: [],
-    history: []
+    flags: {
+      metRoba: false,
+      metRadiy: false,
+      metDoctor: false,
+      heardAboutHerbs: false,
+      savedDaughter: false,
+      boughtFromRoba: false,
+      helpedRadiy: false,
+      radiyArrested: false,
+      canTakeShop: false,
+      ownsShop: false
+    },
+
+    world: {
+      day: 1,
+      robaStatus: "у відчаї",
+      radiyStatus: "збирає викуп",
+      daughterStatus: "помирає",
+      brotherStatus: "у полоні",
+      economy: "нестабільна",
+      shopPrices: "normal",
+      shopGoods: "normal"
+    },
+
+    memory: []
   };
+
+  applyBackground(player);
+  return player;
+}
+
+function applyBackground(p) {
+  if (p.background === "smith_apprentice") {
+    p.relations.roba += 8;
+    p.gold += 2;
+  }
+
+  if (p.background === "soldier") {
+    p.maxHealth += 15;
+    p.health = p.maxHealth;
+  }
+
+  if (p.background === "thief") {
+    p.suspicion += 5;
+    p.gold += 6;
+  }
+
+  if (p.background === "merchant_kin") {
+    p.gold += 15;
+    p.relations.radiy += 5;
+  }
+
+  if (p.background === "peasant") {
+    p.maxEnergy += 10;
+    p.energy = p.maxEnergy;
+  }
 }
 
 let player = createNewPlayer();
 
-const locations = {
-  sanctuary: { name: "Підземне Святилище" },
-  village: { name: "Селище Простолюдів" },
-  forest: { name: "Заборонений Ліс" },
-  catacombs: { name: "Міські Катакомби" },
-  innerTemple: { name: "Внутрішній Храм" }
-};
-
 const scenes = {
-  intro: {
-    location: "sanctuary",
-    title: "Перша ніч",
-    text:
-      "Ти стоїш перед вівтарем Великої Матері Плоті. Старі послідовники мовчать. Вони ще не знають, ким ти станеш.",
+  wake_square: {
+    place: "Площа замку Каравел",
+    title: "Пробудження",
+    text: () =>
+      "Ти прокидаєшся просто на площі Каравела. Камінь під боком холодний. Варта дивиться на тебе з підозрою, але, побачивши твій жалюгідний вигляд, швидко втрачає інтерес. Неподалік, у кузні, щось із лязкотом падає на підлогу.",
     choices: [
       {
-        text: "Прийняти обітницю культу",
-        effect: () => {
-          gain("divinity", 3);
-          lose("humanity", 2);
-          goToScene("sanctuary_hub");
-          log("Ти прийняв обітницю. Темрява відповіла.");
+        text: "Підійти до кузні",
+        action: () => go("roba_first")
+      },
+      {
+        text: "Пройтись площею",
+        action: () => go("square_walk")
+      }
+    ]
+  },
+
+  roba_first: {
+    place: "Кузня Роби",
+    title: "Поганий метал",
+    text: () =>
+      "Коваль Роба зустрічає тебе поглядом, у якому змішались біль, сором і надія.\n\n“Купець... знову за своє. Цей метал нікудишній. Я не можу з цим працювати.”\n\nВін показує полиці: ніж, лом, шолом низької якості, кольчуга, що ось-ось розсиплеться.\n\n“Моя донька хвора. Тяжко хвора. Мені потрібні будь-які кошти. Але Радій привозить мені поганий метал і здирає втричі більше. Якщо так піде далі — я продам кузню. Я зроблю все, щоб моя донька жила.”",
+    onEnter: () => {
+      player.flags.metRoba = true;
+    },
+    choices: [
+      {
+        text: "Купити дешевий ніж у Роби — 5 золота",
+        condition: () => player.gold >= 5,
+        action: () => {
+          player.gold -= 5;
+          player.relations.roba += 12;
+          player.flags.boughtFromRoba = true;
+          remember("Ти купив у Роби поганий ніж, хоча розумів, що він майже нічого не вартий.");
+          go("roba_grateful_small");
         }
       },
       {
-        text: "Запитати, чому Мати мовчить",
-        effect: () => {
-          gain("mind", 5);
-          player.flags.doubt = true;
-          goToScene("sanctuary_hub");
-          log("Питання було небезпечним. Але ти його поставив.");
+        text: "Сказати: “У кожного свої проблеми”",
+        action: () => {
+          player.relations.roba -= 15;
+          remember("Ти сказав Робі, що його біда — не твоя проблема.");
+          go("roba_hurt");
+        }
+      },
+      {
+        text: "Мовчки піти",
+        action: () => {
+          player.relations.roba -= 6;
+          remember("Ти мовчки пішов із кузні. Роба дивився тобі вслід.");
+          go("square_walk");
+        }
+      },
+      {
+        text: "Запитати про купця Радія",
+        action: () => go("ask_radiy")
+      }
+    ]
+  },
+
+  roba_grateful_small: {
+    place: "Кузня Роби",
+    title: "Дрібна допомога",
+    text: () =>
+      "Роба бере монети повільно. Він розуміє, що ти купив не товар, а час.\n\n“Дякую. Це... небагато. Але сьогодні я хоча б не повернусь додому з порожніми руками.”",
+    choices: [
+      {
+        text: "Вийти на площу",
+        action: () => go("square_walk")
+      }
+    ]
+  },
+
+  roba_hurt: {
+    place: "Кузня Роби",
+    title: "Холод",
+    text: () =>
+      "Роба опускає очі. На мить тобі здається, що він щось хоче сказати, але він лише повертається до горна.\n\n“Тоді не витрачай мій час.”",
+    choices: [
+      {
+        text: "Піти",
+        action: () => go("square_walk")
+      }
+    ]
+  },
+
+  ask_radiy: {
+    place: "Кузня Роби",
+    title: "Імʼя купця",
+    text: () =>
+      "Роба стискає кулак.\n\n“Радій. Його крамниця на ринку. Усміхається так, ніби світ йому винен. Якщо підеш до нього — не вір кожному слову.”",
+    choices: [
+      {
+        text: "Піти до крамниці Радія",
+        action: () => go("radiy_first")
+      },
+      {
+        text: "Спершу пройтись площею",
+        action: () => go("square_walk")
+      }
+    ]
+  },
+
+  square_walk: {
+    place: "Площа Каравела",
+    title: "Переварити почуте",
+    text: () =>
+      "Ти йдеш площею, намагаючись зібрати думки. Люди поспішають у своїх справах. Біля колодязя старий лікар перебирає трави в потертій сумці. Він помічає твій погляд.\n\n“Ти був у Роби, так? Якщо мова про його доньку — монет замало. Потрібні срібні трави з Чорного Яру. Без них усе марно.”",
+    onEnter: () => {
+      player.flags.metDoctor = true;
+      player.flags.heardAboutHerbs = true;
+    },
+    choices: [
+      {
+        text: "Сказати лікарю: “Я зберу трави”",
+        action: () => {
+          player.relations.doctor += 8;
+          remember("Ти пообіцяв лікарю зібрати срібні трави для доньки Роби.");
+          go("black_ravine");
+        }
+      },
+      {
+        text: "Спитати, чи немає іншої роботи",
+        action: () => {
+          player.relations.doctor += 2;
+          remember("Ти не взявся за трави, але попросив у лікаря іншу роботу.");
+          go("doctor_small_job");
+        }
+      },
+      {
+        text: "Піти до Радія",
+        action: () => go("radiy_first")
+      },
+      {
+        text: "Піти далі своєю дорогою",
+        action: () => {
+          passTime();
+          go("square_later");
         }
       }
     ]
   },
 
-  sanctuary_hub: {
-    location: "sanctuary",
-    title: "Підземне святилище",
-    text:
-      "Святилище чекає. Вівтар голодний. Послідовники хочуть знаків. За межами храму є селище, ліс і катакомби.",
+  doctor_small_job: {
+    place: "Площа Каравела",
+    title: "Інша робота",
+    text: () =>
+      "Лікар дивиться на тебе уважно.\n\n“Робота є завжди. Але не кожна робота рятує чиєсь життя.”\n\nВін дає тобі дрібне доручення. Ти заробляєш кілька монет, але думка про трави не зникає.",
     choices: [
       {
-        text: "Провести малий ритуал есенції",
-        condition: () => player.essence >= 5,
-        effect: () => {
-          lose("essence", 5);
-          gain("divinity", 8);
-          lose("humanity", 4);
-          maybeMutation();
-          advanceChapter();
-          goToScene("sanctuary_hub");
-          log("Ритуал зробив тебе сильнішим, але менш людським.");
-        }
-      },
-      {
-        text: "Провести кривавий ритуал з полоненим",
-        condition: () => player.captives >= 1,
-        effect: () => {
-          lose("captives", 1);
-          gain("essence", 10);
-          gain("divinity", 12);
-          lose("humanity", 10);
-          gain("suspicion", 8);
-          maybeMutation();
-          advanceChapter();
-          goToScene("sanctuary_hub");
-          log("Вівтар прийняв жертву. Культ став сильнішим.");
-        }
-      },
-      {
-        text: "Відновити тіло і розум",
-        effect: () => {
-          player.body = player.maxBody;
-          player.mind = player.maxMind;
-          goToScene("sanctuary_hub");
-          log("Ти відновив сили у тиші святилища.");
-        }
-      },
-      {
-        text: "Вийти до селища",
-        effect: () => travel("village", "village_square")
-      },
-      {
-        text: "Піти в Заборонений Ліс",
-        effect: () => travel("forest", "forest_edge")
-      },
-      {
-        text: "Спуститись у катакомби",
-        effect: () => travel("catacombs", "catacombs_gate")
-      }
-    ]
-  },
-
-  village_square: {
-    location: "village",
-    title: "Площа селища",
-    text:
-      "На площі пахне димом і страхом. Тут можна знайти послідовників, полонених або проблеми.",
-    choices: [
-      {
-        text: "Тихо проповідувати серед знедолених",
-        effect: () => {
-          if (roll(60)) {
-            gain("followers", 1);
-            log("Один зі знедолених повірив тобі.");
-          } else {
-            gain("suspicion", 5);
-            lose("mind", 5);
-            log("Твої слова почула не та людина.");
-          }
-          goToScene("village_square");
-        }
-      },
-      {
-        text: "Вистежити самотнього простолюдина",
-        effect: () => {
-          if (roll(55)) {
-            gain("captives", 1);
-            gain("suspicion", 8);
-            log("Ти привів полоненого. Але сліди могли помітити.");
-          } else {
-            lose("body", 10);
-            gain("suspicion", 12);
-            log("Жертва вирвалась і здійняла шум.");
-          }
-          goToScene("village_square");
-        }
-      },
-      {
-        text: "Повернутись у святилище",
-        effect: () => travel("sanctuary", "sanctuary_hub")
-      }
-    ]
-  },
-
-  forest_edge: {
-    location: "forest",
-    title: "Край Забороненого Лісу",
-    text:
-      "Ліс уважний. Тут есенція просочується з землі, але кожен шепіт тисне на розум.",
-    choices: [
-      {
-        text: "Зібрати чорну есенцію",
-        effect: () => {
-          const amount = rand(4, 9);
-          gain("essence", amount);
-          lose("mind", rand(4, 9));
-          log(`Ти зібрав ${amount} есенції.`);
-          goToScene("forest_edge");
-        }
-      },
-      {
-        text: "Прислухатись до шепоту дерев",
-        effect: () => {
-          if (roll(50)) {
-            gain("divinity", 5);
-            lose("humanity", 3);
-            log("Шепіт відкрив частину правди.");
-          } else {
-            lose("mind", 12);
-            log("Шепіт був занадто глибоким.");
-          }
-          maybeMutation();
-          advanceChapter();
-          goToScene("forest_edge");
-        }
-      },
-      {
-        text: "Повернутись у святилище",
-        effect: () => travel("sanctuary", "sanctuary_hub")
-      }
-    ]
-  },
-
-  catacombs_gate: {
-    location: "catacombs",
-    title: "Вхід у катакомби",
-    text:
-      "Під містом немає закону. Тут ховаються вигнанці, злочинці й ті, кого ніхто не шукатиме.",
-    choices: [
-      {
-        text: "Шукати вигнанців для культу",
-        effect: () => {
-          if (roll(55)) {
-            gain("followers", 2);
-            gain("suspicion", 4);
-            log("Двоє вигнанців прийняли обітницю.");
-          } else {
-            lose("body", 10);
-            log("Тебе зустріли ножами.");
-          }
-          goToScene("catacombs_gate");
-        }
-      },
-      {
-        text: "Викрасти безіменного мешканця тунелів",
-        effect: () => {
-          if (roll(65)) {
-            gain("captives", 1);
-            log("Полонений не мав імені.");
-          } else {
-            lose("body", 8);
-            gain("suspicion", 6);
-            log("Хтось бачив твоє обличчя.");
-          }
-          goToScene("catacombs_gate");
-        }
-      },
-      {
-        text: "Повернутись у святилище",
-        effect: () => travel("sanctuary", "sanctuary_hub")
-      }
-    ]
-  },
-
-  hunters_arrive: {
-    location: "village",
-    title: "Мисливці на культ",
-    text:
-      "Підозра стала критичною. Мисливці шукають сліди культу. Якщо вони знайдуть святилище, усе може скінчитись.",
-    choices: [
-      {
-        text: "Підставити невинного",
-        effect: () => {
-          lose("humanity", 12);
-          player.suspicion = Math.max(0, player.suspicion - 25);
-          log("Невинного повели. Культ виграв час.");
-          goToScene("sanctuary_hub");
-        }
-      },
-      {
-        text: "Послати послідовників замести сліди",
-        condition: () => player.followers >= 2,
-        effect: () => {
-          lose("followers", 2);
-          player.suspicion = Math.max(0, player.suspicion - 35);
-          log("Двоє послідовників не повернулись.");
-          goToScene("sanctuary_hub");
-        }
-      },
-      {
-        text: "Прийняти бій у темряві",
-        effect: () => {
-          if (player.divinity >= 40 || roll(45)) {
-            player.suspicion = Math.max(0, player.suspicion - 20);
-            gain("essence", 8);
-            log("Мисливці не були готові до темряви.");
-          } else {
-            lose("body", 35);
-            lose("followers", 1);
-            log("Культ вижив, але заплатив кровʼю.");
-          }
-          goToScene("sanctuary_hub");
+        text: "Виконати дрібне доручення",
+        action: () => {
+          player.gold += 4;
+          player.energy -= 15;
+          gainXp(6);
+          passTime();
+          remember("Ти заробив кілька монет у лікаря, але не пішов по трави.");
+          go("square_later");
         }
       }
     ]
   },
 
-  ascension_choice: {
-    location: "innerTemple",
-    title: "Місце Матері",
-    text:
-      "Велика Мати слабшає. Культ дивиться вже не на неї, а на тебе. Це не кінець — це розлом у долі культу.",
+  black_ravine: {
+    place: "Чорний Яр",
+    title: "Срібні трави",
+    text: () =>
+      "Чорний Яр зустрічає тебе сирістю і тишею. Каміння слизьке, повітря важке. Трави ростуть між темними коренями, там, де легко зламати ногу або зустріти щось гірше за вовка.",
     choices: [
       {
-        text: "Залишитись вірним Матері",
-        effect: () => {
-          player.path = "servant";
-          player.chapter = 4;
-          gain("motherFavor", 20);
-          goToScene("servant_start");
-          log("Ти схилився перед Матірʼю. Вона дала тобі частину свого голоду.");
+        text: "Обережно збирати трави",
+        action: () => {
+          player.energy -= 30;
+          player.health -= 10;
+          player.flags.savedDaughter = true;
+          player.relations.roba += 25;
+          gainXp(25);
+          remember("Ти здобув срібні трави в Чорному Яру.");
+          go("roba_daughter_saved");
         }
       },
       {
-        text: "Узурпувати її місце",
-        condition: () => player.divinity >= 120 && player.humanity <= 60,
-        effect: () => {
-          player.path = "usurper";
-          player.chapter = 4;
-          gain("rebelPower", 20);
-          gain("suspicion", 15);
-          goToScene("usurper_start");
-          log("Ти не схилився. Частина культу злякалась. Частина — впала на коліна.");
-        }
-      },
-      {
-        text: "Знищити культ і піти",
-        condition: () => player.humanity >= 40,
-        effect: () => {
-          player.path = "renegade";
-          player.chapter = 4;
-          gain("redemption", 20);
-          lose("followers", Math.floor(player.followers / 2));
-          goToScene("renegade_start");
-          log("Ти відвернувся від вівтаря. Але культ не відпустить тебе просто так.");
+        text: "Зрозуміти, що це занадто небезпечно, і повернутись",
+        action: () => {
+          player.energy -= 10;
+          player.relations.roba -= 4;
+          remember("Ти дійшов до Чорного Яру, але не ризикнув збирати трави.");
+          passTime();
+          go("square_later");
         }
       }
     ]
   },
 
-  servant_start: {
-    location: "innerTemple",
-    title: "Пророк Матері",
-    text:
-      "Ти обрав служіння. Мати шепоче крізь вівтар: її сила розірвана, її голос слабкий. Щоб вона повернулась, культ має підкорити селище і нагодувати святилище.",
+  roba_daughter_saved: {
+    place: "Кузня Роби",
+    title: "Меч вдячності",
+    text: () =>
+      "Коли ти повертаєшся з травами, Роба довго мовчить. Потім бере згорток так обережно, ніби тримає в руках саме життя.\n\nЧерез деякий час ти знову заходиш у кузню. Горн горить яскравіше.\n\n“Знаєш... я вдячний тобі. Я знайшов іншого постачальника. Хороший метал. Для тебе я зробив один із кращих мечів.”\n\nВін кладе меч перед тобою.",
     choices: [
       {
-        text: "Поширити волю Матері через послідовників",
-        condition: () => player.followers >= 2,
-        effect: () => {
-          lose("followers", 1);
-          gain("motherFavor", rand(8, 14));
-          gain("suspicion", 6);
-          log("Послідовники понесли її шепіт у селище.");
-          checkPathProgress();
-          goToScene("servant_start");
-        }
-      },
-      {
-        text: "Провести ритуал відновлення Матері",
-        condition: () => player.captives >= 1 && player.essence >= 10,
-        effect: () => {
-          lose("captives", 1);
-          lose("essence", 10);
-          gain("motherFavor", 22);
-          gain("divinity", 6);
-          lose("humanity", 8);
-          log("Мати ковтнула силу. Її голос став гучнішим.");
-          checkPathProgress();
-          goToScene("servant_start");
-        }
-      },
-      {
-        text: "Повернутись до звичайних справ культу",
-        effect: () => goToScene("sanctuary_hub")
-      }
-    ]
-  },
-
-  usurper_start: {
-    location: "innerTemple",
-    title: "Розкол культу",
-    text:
-      "Ти обрав узурпацію. Тепер культ розділений. Вірні Матері шепочуть змову, а твої прихильники чекають доказу сили.",
-    choices: [
-      {
-        text: "Переконати культ силою",
-        condition: () => player.essence >= 8,
-        effect: () => {
-          lose("essence", 8);
-          gain("rebelPower", rand(10, 18));
-          gain("divinity", 5);
-          lose("humanity", 5);
-          log("Ти показав силу. Частина культу перейшла на твій бік.");
-          checkPathProgress();
-          goToScene("usurper_start");
-        }
-      },
-      {
-        text: "Знищити вірних Матері",
-        condition: () => player.followers >= 3,
-        effect: () => {
-          lose("followers", 2);
-          gain("rebelPower", 22);
-          gain("suspicion", 12);
-          lose("humanity", 10);
-          log("Святилище пережило ніч чистки.");
-          checkPathProgress();
-          goToScene("usurper_start");
-        }
-      },
-      {
-        text: "Повернутись до звичайних справ культу",
-        effect: () => goToScene("sanctuary_hub")
-      }
-    ]
-  },
-
-  renegade_start: {
-    location: "forest",
-    title: "Відступник",
-    text:
-      "Ти відмовився від культу. Але шепіт залишився в крові. Колишні послідовники шукають тебе, а Мати приходить у сни.",
-    choices: [
-      {
-        text: "Рятувати тих, кого культ готував для ритуалів",
-        condition: () => player.captives >= 1,
-        effect: () => {
-          lose("captives", 1);
-          gain("redemption", 15);
-          gain("humanity", 6);
-          log("Один полонений утік. Ти почув не шепіт, а власне серце.");
-          checkPathProgress();
-          goToScene("renegade_start");
-        }
-      },
-      {
-        text: "Знищити старі знаки культу",
-        condition: () => player.essence >= 6,
-        effect: () => {
-          lose("essence", 6);
-          gain("redemption", rand(10, 16));
-          lose("divinity", 4);
-          log("Знак згорів. Але біль пройшов крізь тебе.");
-          checkPathProgress();
-          goToScene("renegade_start");
-        }
-      },
-      {
-        text: "Повернутись у світ і діяти обережно",
-        effect: () => goToScene("village_square")
-      }
-    ]
-  },
-
-  servant_endgame: {
-    location: "innerTemple",
-    title: "Голос Матері",
-    text:
-      "Мати майже повернулась. Але тепер ти розумієш: її відродження забере твою волю. Ти можеш дозволити це або в останній момент зрадити.",
-    choices: [
-      {
-        text: "Стати її Верховним Жерцем",
-        effect: () => {
-          player.chapter = 5;
-          log("Ти став Верховним Жерцем. Гра продовжиться у майбутній Главі V.");
-          goToScene("postgame");
-        }
-      },
-      {
-        text: "В останній момент забрати її силу",
-        condition: () => player.divinity >= 160,
-        effect: () => {
-          player.path = "usurper";
-          player.chapter = 5;
-          gain("rebelPower", 40);
-          log("Ти зрадив Матір у момент її повернення.");
-          goToScene("postgame");
+        text: "Прийняти меч",
+        action: () => {
+          player.gold += 0;
+          gainXp(35);
+          remember("Роба подарував тобі добрий меч за порятунок доньки.");
+          passTime();
+          player.world.robaStatus = "врятований";
+          player.world.daughterStatus = "жива";
+          player.world.radiyStatus = "втрачає прибуток";
+          go("radiy_arrest");
         }
       }
     ]
   },
 
-  usurper_endgame: {
-    location: "innerTemple",
-    title: "Новий Вівтар",
-    text:
-      "Твої прихильники готові назвати тебе новим божеством. Але старий голос Матері ще живий у стінах.",
+  radiy_first: {
+    place: "Крамниця Радія",
+    title: "Брат у ДегРані",
+    text: () =>
+      "Крамниця Радія тепла й затишна. Пахне спеціями, сухофруктами і грошима. Радій — крупний чоловік із посмішкою, яка одразу привертає увагу.\n\nКоли ти питаєш про метал для Роби, посмішка слабне.\n\n“О, мій дорогий друже. Він уже й тобі пожалівся? Але зрозумій... його донька хоч і хвора, але вона вдома.”\n\nЙого руки починають тремтіти.\n\n“Мій єдиний брат у полоні в ДегРані. Король Магнус вимагає викуп. І з кожним днем сума росте.”",
+    onEnter: () => {
+      player.flags.metRadiy = true;
+    },
     choices: [
       {
-        text: "Почати будівництво нового культу",
-        effect: () => {
-          player.chapter = 5;
-          log("Ти став центром нового культу. Глава V відкриється пізніше.");
-          goToScene("postgame");
+        text: "Купити їжу — 3 золота",
+        condition: () => player.gold >= 3,
+        action: () => {
+          player.gold -= 3;
+          player.relations.radiy += 8;
+          player.flags.helpedRadiy = true;
+          remember("Ти купив їжу в Радія. Маленька монета на великий викуп.");
+          passTime();
+          go("radiy_food");
+        }
+      },
+      {
+        text: "Спитати, де можна зняти кімнату",
+        action: () => {
+          player.relations.radiy += 5;
+          remember("Ти спитав у Радія про кімнату, знаючи, що він має з цього відсоток.");
+          go("radiy_room");
+        }
+      },
+      {
+        text: "Піти",
+        action: () => {
+          player.relations.radiy -= 2;
+          remember("Ти вислухав Радія і пішов, нічого не купивши.");
+          go("square_walk");
         }
       }
     ]
   },
 
-  renegade_endgame: {
-    location: "forest",
-    title: "Попіл святилища",
-    text:
-      "Ти майже зірвав владу культу. Але скверна в тобі ще жива. Спокута не завершена.",
+  radiy_food: {
+    place: "Крамниця Радія",
+    title: "Дрібна монета",
+    text: () =>
+      "Радій загортає їжу швидше, ніж треба.\n\n“Дякую. Це дрібниця, я знаю. Але іноді людина тримається саме на дрібницях.”\n\nТи бачиш: він не бреше. Але й не кається.",
     choices: [
       {
-        text: "Продовжити очищення",
-        effect: () => {
-          player.chapter = 5;
-          log("Ти вступив на шлях очищення. Глава V відкриється пізніше.");
-          goToScene("postgame");
+        text: "Повернутись на площу",
+        action: () => go("square_walk")
+      }
+    ]
+  },
+
+  radiy_room: {
+    place: "Крамниця Радія",
+    title: "Кімната",
+    text: () =>
+      "Радій трохи оживає.\n\n“Є одна кімната над таверною. Не найкраща, але суха. Скажеш, що від мене.”\n\nТи розумієш: навіть твоя ночівля стане частиною його спроби врятувати брата.",
+    choices: [
+      {
+        text: "Подякувати і піти",
+        action: () => {
+          passTime();
+          go("square_later");
         }
       }
     ]
   },
 
-  postgame: {
-    location: "innerTemple",
-    title: "Після перелому",
-    text:
-      "Це не фінал. Твій вибір змінив гру. Далі будуть нові глави: війна культів, очищення, або остаточне вознесіння.",
+  square_later: {
+    place: "Площа Каравела",
+    title: "Місто рухається",
+    text: () =>
+      "Площа живе своїм життям. Хтось сперечається про ціни. Хтось каже, що в кузні стало тихіше. Хтось шепоче, що Радій останнім часом надто часто ходить до замкових людей.",
     choices: [
       {
-        text: "Продовжити вільну гру",
-        effect: () => goToScene("sanctuary_hub")
+        text: "Повернутись до кузні",
+        action: () => {
+          if (player.flags.savedDaughter) go("roba_daughter_saved");
+          else go("roba_consequence");
+        }
+      },
+      {
+        text: "Піти до Радія",
+        action: () => go("radiy_first")
+      }
+    ]
+  },
+
+  roba_consequence: {
+    place: "Кузня Роби",
+    title: "Тиша",
+    text: () =>
+      "Ти проходиш повз кузню і зупиняєшся. Не чути жодного удару молота.\n\nПерехожий, якого ти питаєш про Робу, лише зітхає.\n\n“Ти ще не знаєш? Він продав кузню, щоб оплатити лікування. Але грошей не вистачило. Дівчинка померла. А він... поїхав. Зібрав усе, що мав, і зник.”",
+    choices: [
+      {
+        text: "Мовчки стояти біля порожньої кузні",
+        action: () => {
+          passTime();
+          player.world.robaStatus = "зник";
+          player.world.daughterStatus = "померла";
+          go("radiy_late");
+        }
+      }
+    ]
+  },
+
+  radiy_late: {
+    place: "Крамниця Радія",
+    title: "Запізно",
+    text: () =>
+      "У крамниці Радія тихіше, ніж раніше.\n\nВін упізнає тебе.\n\n“Коваль зник. А він був моїм найбільшим клієнтом.”\n\nВін показує на скриню із золотом.\n\n“Я майже зібрав. Майже.”\n\nПауза.\n\n“ДегРан захотів удвічі більше. Брата стратили.”",
+    choices: [
+      {
+        text: "Слухати мовчки",
+        action: () => {
+          player.world.radiyStatus = "зламаний";
+          passTime();
+          go("king_pressure");
+        }
+      }
+    ]
+  },
+
+  radiy_arrest: {
+    place: "Крамниця Радія",
+    title: "Арешт",
+    text: () =>
+      "Коли ти заходиш до крамниці, там уже варта.\n\nРадій стоїть посеред кімнати, руки звʼязані. Він бачить тебе. На мить його погляд зупиняється.\n\nТам немає крику. Немає прокляття.\n\nЛише втома.\n\nКапітан варти киває людям, і Радія виводять.",
+    onEnter: () => {
+      player.flags.radiyArrested = true;
+      player.flags.canTakeShop = true;
+      player.world.radiyStatus = "арештований";
+      player.world.brotherStatus = "не врятований";
+    },
+    choices: [
+      {
+        text: "Подумати: “Чи не зайняти мені його місце?”",
+        action: () => go("take_shop_choice")
+      },
+      {
+        text: "Спробувати допомогти Радію",
+        action: () => go("help_radiy")
+      },
+      {
+        text: "Зайнятись своїми справами",
+        action: () => {
+          remember("Ти бачив, як Радія забрала варта, і не втрутився.");
+          go("square_after_chain");
+        }
+      }
+    ]
+  },
+
+  help_radiy: {
+    place: "Біля крамниці",
+    title: "Проти варти",
+    text: () =>
+      "Ти робиш крок уперед, але один із вартових кладе руку на руківʼя меча.\n\n“Не твоя справа.”\n\nІ ти розумієш: допомогти можна. Але не тут. Не зараз. І точно не без наслідків.",
+    choices: [
+      {
+        text: "Відступити",
+        action: () => {
+          player.relations.guard -= 5;
+          remember("Ти спробував втрутитись під час арешту Радія.");
+          go("square_after_chain");
+        }
+      }
+    ]
+  },
+
+  take_shop_choice: {
+    place: "Порожня крамниця",
+    title: "Вакантне місце",
+    text: () =>
+      "Крамниця стоїть майже порожня. На столі лишились рахунки. Двері ще не опечатані.\n\nТи не знаєш, чи це шанс, чи пастка.\n\nАле вперше Каравел ніби питає тебе: ким ти хочеш бути?",
+    choices: [
+      {
+        text: "Спробувати зайняти місце купця",
+        action: () => {
+          player.flags.ownsShop = true;
+          player.gold = Math.max(0, player.gold - 2);
+          remember("Ти вирішив спробувати зайняти місце Радія.");
+          go("shop_management");
+        }
+      },
+      {
+        text: "Не лізти в це",
+        action: () => go("square_after_chain")
+      }
+    ]
+  },
+
+  shop_management: {
+    place: "Твоя крамниця",
+    title: "Перші рішення",
+    text: () =>
+      "Тепер за прилавком стоїш ти.\n\nЛюди заходять обережно. Дехто дивиться з надією. Дехто — з недовірою. На столі лежать три рішення, які виглядають простими тільки на папері.",
+    choices: [
+      {
+        text: "Тримати нормальні ціни",
+        action: () => {
+          player.world.shopPrices = "normal";
+          player.gold += 6;
+          remember("Ти вирішив тримати нормальні ціни.");
+          go("shop_reaction");
+        }
+      },
+      {
+        text: "Підняти ціни",
+        action: () => {
+          player.world.shopPrices = "high";
+          player.gold += 12;
+          player.relations.roba -= 5;
+          player.suspicion += 4;
+          remember("Ти підняв ціни в крамниці.");
+          go("shop_reaction");
+        }
+      },
+      {
+        text: "Продавати дешевше, щоб люди прийшли",
+        action: () => {
+          player.world.shopPrices = "low";
+          player.gold += 2;
+          player.relations.guard -= 2;
+          remember("Ти знизив ціни, щоб залучити людей.");
+          go("shop_reaction");
+        }
+      }
+    ]
+  },
+
+  shop_reaction: {
+    place: "Твоя крамниця",
+    title: "Перший відгук",
+    text: () => {
+      if (player.world.shopPrices === "high") {
+        return "Наступного дня людей менше.\n\nОдин чоловік бере мішок зерна, дивиться на ціну і мовчки кладе назад.\n\nРоба, проходячи повз, кидає коротко:\n\n“Ти швидко вчишся бути схожим на нього.”";
+      }
+
+      if (player.world.shopPrices === "low") {
+        return "Людей стало більше. Хтось навіть дякує тобі.\n\nАле ввечері біля дверей зупиняється вартовий.\n\n“Дивні ціни. Дуже дивні. Сподіваюсь, товар не крадений.”";
+      }
+
+      return "Люди заходять обережно, але купують. Ніхто не дякує. Ніхто не проклинає.\n\nМожливо, для першого дня це вже перемога.";
+    },
+    choices: [
+      {
+        text: "Продовжити",
+        action: () => go("square_after_chain")
+      }
+    ]
+  },
+
+  king_pressure: {
+    place: "Площа Каравела",
+    title: "Темні часи",
+    text: () =>
+      "Площа змінилась. Люди говорять тихіше. Ходять чутки, що казна замку пустує. Король Вальтер незадоволений купцями, ремісниками, усіма.\n\nКаравел входить у важкі часи.",
+    choices: [
+      {
+        text: "Продовжити свою історію",
+        action: () => go("square_after_chain")
+      }
+    ]
+  },
+
+  square_after_chain: {
+    place: "Площа Каравела",
+    title: "Після першого ланцюга",
+    text: () =>
+      "Ти знову стоїш на площі. Але це вже не та площа, на якій ти прокинувся.\n\nХтось отримав шанс. Хтось втратив усе. А ти отримав перший урок Каравела: навіть маленькі рішення мають довгу тінь.",
+    choices: [
+      {
+        text: "Повернутись до крамниці",
+        condition: () => player.flags.ownsShop,
+        action: () => go("shop_management")
+      },
+      {
+        text: "Піти до кузні",
+        action: () => {
+          if (player.flags.savedDaughter) go("roba_daughter_saved");
+          else go("roba_consequence");
+        }
+      },
+      {
+        text: "Зберегти гру",
+        action: () => saveGame(true)
       }
     ]
   }
@@ -574,19 +640,18 @@ startBtn.addEventListener("click", startGame);
 saveBtn.addEventListener("click", () => saveGame(true));
 logoutBtn.addEventListener("click", logout);
 
-passwordInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") login();
+passwordInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") login();
 });
 
-nameInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") startGame();
+nameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") startGame();
 });
 
 init();
 
 async function init() {
-  hideAllPanels();
-  render();
+  hideAll();
 
   if (!authToken) {
     showAuth();
@@ -609,9 +674,8 @@ async function init() {
       ...createNewPlayer(),
       ...result.save
     };
-
     showGame();
-    log(`Вітаємо, ${currentUser}. Хроніку завантажено.`);
+    log("Історію завантажено.");
   } else {
     showStart();
   }
@@ -637,7 +701,6 @@ async function register() {
   localStorage.setItem(USER_KEY, currentUser);
 
   player = createNewPlayer();
-  authMessage.textContent = "";
   showStart();
   render();
 }
@@ -659,15 +722,13 @@ async function login() {
   localStorage.setItem(TOKEN_KEY, authToken);
   localStorage.setItem(USER_KEY, currentUser);
 
-  authMessage.textContent = "";
-
   if (result.save) {
     player = {
       ...createNewPlayer(),
       ...result.save
     };
     showGame();
-    log("Хроніку завантажено.");
+    log("Історію завантажено.");
   } else {
     player = createNewPlayer();
     showStart();
@@ -680,73 +741,160 @@ function logout() {
   apiPost("/api/logout", {});
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
-
   authToken = null;
   currentUser = null;
   player = createNewPlayer();
-
   logBox.innerHTML = "";
   showAuth();
-  render();
 }
 
 function startGame() {
   const name = nameInput.value.trim();
 
   if (!name) {
-    alert("Введи імʼя адепта");
+    alert("Введи імʼя");
     return;
   }
 
-  player = createNewPlayer(name);
+  player = createNewPlayer(name, backgroundSelect.value);
   showGame();
-  log("Історія почалась у підземному святилищі.");
+  log("Ти прокинувся на площі Каравела.");
   saveGame(false);
   render();
 }
 
-async function saveGame(showLog = true) {
-  if (!authToken) return;
+function choose(choice) {
+  if (choice.condition && !choice.condition()) return;
 
-  const result = await apiPost("/api/save", { save: player });
-
-  if (!result.ok) {
-    log("Не вдалося зберегти гру.");
-    return;
-  }
-
-  if (showLog) log("Хроніку збережено.");
+  choice.action();
+  normalize();
+  saveGame(false);
+  render();
 }
 
-async function apiGetSave() {
-  try {
-    const response = await fetch("/api/save", {
-      headers: { Authorization: `Bearer ${authToken}` }
-    });
-    return await response.json();
-  } catch {
-    return { ok: false };
+function go(sceneId) {
+  player.scene = sceneId;
+  const scene = scenes[sceneId];
+
+  if (scene && scene.onEnter) {
+    scene.onEnter();
   }
+
+  render();
 }
 
-async function apiPost(url, data) {
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
-      },
-      body: JSON.stringify(data)
-    });
+function passTime() {
+  player.world.day += 1;
+  player.energy = Math.min(player.maxEnergy, player.energy + 25);
 
-    return await response.json();
-  } catch {
-    return { ok: false, error: "Сервер недоступний" };
+  if (!player.flags.savedDaughter && player.world.day >= 4) {
+    player.world.daughterStatus = "критичний стан";
+  }
+
+  if (!player.flags.helpedRadiy && player.world.day >= 4) {
+    player.world.brotherStatus = "вирок наближається";
   }
 }
 
-function hideAllPanels() {
+function gainXp(amount) {
+  player.xp += amount;
+
+  while (player.xp >= player.level * 40) {
+    player.xp -= player.level * 40;
+    player.level += 1;
+    player.maxHealth += 5;
+    player.maxEnergy += 5;
+    player.health = player.maxHealth;
+    player.energy = player.maxEnergy;
+    log("Ти став досвідченішим.");
+  }
+}
+
+function remember(text) {
+  player.memory.unshift(text);
+  player.memory = player.memory.slice(0, 80);
+  log(text);
+}
+
+function normalize() {
+  player.health = clamp(player.health, 1, player.maxHealth);
+  player.energy = clamp(player.energy, 0, player.maxEnergy);
+  player.gold = Math.max(0, player.gold);
+  player.suspicion = clamp(player.suspicion, 0, 100);
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function render() {
+  const scene = scenes[player.scene] || scenes.wake_square;
+
+  playerName.textContent = player.name || "Безіменний";
+  locationText.textContent = player.location;
+
+  healthStat.textContent = `${player.health}/${player.maxHealth}`;
+  energyStat.textContent = `${player.energy}/${player.maxEnergy}`;
+  goldStat.textContent = player.gold;
+  levelStat.textContent = player.level;
+  xpStat.textContent = player.xp;
+  suspicionStat.textContent = player.suspicion;
+
+  scenePlace.textContent = scene.place;
+  sceneTitle.textContent = scene.title;
+  sceneText.textContent = typeof scene.text === "function" ? scene.text() : scene.text;
+
+  choicesBox.innerHTML = "";
+
+  scene.choices.forEach((choice) => {
+    if (choice.condition && !choice.condition()) return;
+
+    const button = document.createElement("button");
+    button.textContent = choice.text;
+    button.addEventListener("click", () => choose(choice));
+    choicesBox.appendChild(button);
+  });
+
+  renderPeople();
+  renderWorld();
+}
+
+function renderPeople() {
+  peopleBox.innerHTML = `
+    <div class="person"><b>Роба, коваль</b><br>${relationText(player.relations.roba)}<br>Стан: ${player.world.robaStatus}</div>
+    <div class="person"><b>Радій, купець</b><br>${relationText(player.relations.radiy)}<br>Стан: ${player.world.radiyStatus}</div>
+    <div class="person"><b>Лікар</b><br>${relationText(player.relations.doctor)}</div>
+    <div class="person"><b>Варта</b><br>${relationText(player.relations.guard)}</div>
+  `;
+}
+
+function relationText(value) {
+  if (value >= 25) return `<span class="good">довіряє тобі</span>`;
+  if (value >= 8) return `<span class="good">ставиться краще</span>`;
+  if (value <= -20) return `<span class="bad">памʼятає образу</span>`;
+  if (value <= -5) return `<span class="warn">холодне ставлення</span>`;
+  return `<span>нейтрально</span>`;
+}
+
+function renderWorld() {
+  worldBox.innerHTML = `
+    <div class="world-line">День: ${player.world.day}</div>
+    <div class="world-line">Донька Роби: ${player.world.daughterStatus}</div>
+    <div class="world-line">Брат Радія: ${player.world.brotherStatus}</div>
+    <div class="world-line">Економіка Каравела: ${player.world.economy}</div>
+    ${player.flags.ownsShop ? `<div class="world-line">Твоя крамниця: ціни — ${player.world.shopPrices}</div>` : ""}
+  `;
+}
+
+function log(text) {
+  if (!logBox) return;
+
+  const p = document.createElement("p");
+  p.textContent = text;
+  logBox.prepend(p);
+}
+
+function hideAll() {
   authPanel.classList.add("hidden");
   startPanel.classList.add("hidden");
   gamePanel.classList.add("hidden");
@@ -770,272 +918,46 @@ function showGame() {
   gamePanel.classList.remove("hidden");
 }
 
-function travel(locationId, sceneId) {
-  player.location = locationId;
-  player.scene = sceneId;
-  saveGame(false);
-  render();
-}
+async function saveGame(showLog = true) {
+  if (!authToken) return;
 
-function goToScene(sceneId) {
-  player.scene = sceneId;
-  saveGame(false);
-  render();
-}
+  const result = await apiPost("/api/save", { save: player });
 
-function choose(choice) {
-  if (choice.condition && !choice.condition()) return;
-
-  choice.effect();
-  normalizeStats();
-  checkDanger();
-  checkAscensionChoice();
-  saveGame(false);
-  render();
-}
-
-function gain(stat, amount) {
-  player[stat] += amount;
-}
-
-function lose(stat, amount) {
-  player[stat] -= amount;
-}
-
-function roll(percent) {
-  return Math.random() * 100 < percent;
-}
-
-function rand(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function normalizeStats() {
-  player.body = clamp(player.body, 0, player.maxBody);
-  player.mind = clamp(player.mind, 0, player.maxMind);
-  player.humanity = clamp(player.humanity, 0, 100);
-  player.divinity = Math.max(0, player.divinity);
-  player.essence = Math.max(0, player.essence);
-  player.followers = Math.max(0, player.followers);
-  player.captives = Math.max(0, player.captives);
-  player.suspicion = clamp(player.suspicion, 0, 100);
-  player.motherFavor = Math.max(0, player.motherFavor || 0);
-  player.rebelPower = Math.max(0, player.rebelPower || 0);
-  player.redemption = Math.max(0, player.redemption || 0);
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function maybeMutation() {
-  if (player.divinity >= 20 && !player.mutations.includes("Очі відкриті")) {
-    player.mutations.push("Очі відкриті");
-    player.maxMind += 10;
-    log("Мутація: очі бачать те, чого не має бачити людина.");
+  if (!result.ok) {
+    log("Не вдалося зберегти гру.");
+    return;
   }
 
-  if (player.divinity >= 60 && !player.mutations.includes("Пульс плоті")) {
-    player.mutations.push("Пульс плоті");
-    player.maxBody += 20;
-    player.body = player.maxBody;
-    log("Мутація: плоть пульсує силою вівтаря.");
-  }
-
-  if (player.divinity >= 100 && !player.mutations.includes("Голос у крові")) {
-    player.mutations.push("Голос у крові");
-    player.followers += 2;
-    log("Мутація: послідовники чують твій голос навіть уві сні.");
-  }
+  if (showLog) log("Гру збережено.");
 }
 
-function advanceChapter() {
-  if (player.chapter === 1 && player.divinity >= 30 && player.followers >= 5) {
-    player.chapter = 2;
-    log("Глава II: селище починає боятись і шепотіти про культ.");
-  }
-
-  if (player.chapter === 2 && player.divinity >= 80) {
-    player.chapter = 3;
-    log("Глава III: ти відчуваєш слабкість Великої Матері.");
-  }
-}
-
-function checkDanger() {
-  if (player.suspicion >= 70 && player.scene !== "hunters_arrive") {
-    player.scene = "hunters_arrive";
-    log("Підозра стала критичною. Мисливці прибули.");
-  }
-
-  if (player.body <= 0) {
-    player.body = 1;
-    player.mind = Math.max(0, player.mind - 15);
-    player.scene = "sanctuary_hub";
-    log("Тебе принесли назад у святилище.");
-  }
-
-  if (player.mind <= 0) {
-    player.mind = 1;
-    player.humanity = Math.max(0, player.humanity - 10);
-    player.scene = "sanctuary_hub";
-    log("Твій розум провалився в темряву.");
-  }
-}
-
-function checkAscensionChoice() {
-  if (
-    player.chapter >= 3 &&
-    player.divinity >= 120 &&
-    !player.path &&
-    player.scene !== "ascension_choice"
-  ) {
-    player.scene = "ascension_choice";
-    log("Настав момент вибору: служити, узурпувати чи втекти.");
-  }
-}
-
-function checkPathProgress() {
-  if (player.path === "servant" && player.motherFavor >= 100) {
-    goToScene("servant_endgame");
-  }
-
-  if (player.path === "usurper" && player.rebelPower >= 100) {
-    goToScene("usurper_endgame");
-  }
-
-  if (player.path === "renegade" && player.redemption >= 100) {
-    goToScene("renegade_endgame");
-  }
-}
-
-function render() {
-  cultistName.textContent = player.name || "Адепт";
-  chapterText.textContent = getChapterName();
-
-  bodyStat.textContent = `${player.body}/${player.maxBody}`;
-  mindStat.textContent = `${player.mind}/${player.maxMind}`;
-  divinityStat.textContent = player.divinity;
-  humanityStat.textContent = player.humanity;
-  essenceStat.textContent = player.essence;
-  followersStat.textContent = player.followers;
-  captivesStat.textContent = player.captives;
-  suspicionStat.textContent = player.suspicion;
-
-  renderObjective();
-  renderScene();
-  renderMap();
-  renderCondition();
-}
-
-function renderObjective() {
-  if (player.chapter === 1) {
-    objectiveText.textContent =
-      "Глава I: Народження культу. Отримай 5 послідовників і 30 божественності.";
-  } else if (player.chapter === 2) {
-    objectiveText.textContent =
-      "Глава II: Тінь над селищем. Посилюй культ, але не дай підозрі знищити тебе.";
-  } else if (player.chapter === 3) {
-    objectiveText.textContent =
-      "Глава III: Зрада Матері. Дійди до переломного вибору.";
-  } else if (player.path === "servant") {
-    objectiveText.textContent =
-      `Глава IV: Пророк Матері. Віднови її силу: ${player.motherFavor}/100.`;
-  } else if (player.path === "usurper") {
-    objectiveText.textContent =
-      `Глава IV: Розкол культу. Збери силу узурпатора: ${player.rebelPower}/100.`;
-  } else if (player.path === "renegade") {
-    objectiveText.textContent =
-      `Глава IV: Відступник. Очисти себе і зруйнуй спадщину культу: ${player.redemption}/100.`;
-  } else {
-    objectiveText.textContent = "Глава V: продовження кампанії буде розширено.";
-  }
-}
-
-function renderScene() {
-  const scene = scenes[player.scene] || scenes.intro;
-  const location = locations[scene.location] || locations.sanctuary;
-
-  sceneLocation.textContent = location.name;
-  sceneTitle.textContent = scene.title;
-  sceneText.textContent = scene.text;
-
-  choicesBox.innerHTML = "";
-
-  scene.choices.forEach((choice) => {
-    if (choice.condition && !choice.condition()) return;
-
-    const button = document.createElement("button");
-    button.textContent = choice.text;
-    button.addEventListener("click", () => choose(choice));
-    choicesBox.appendChild(button);
-  });
-}
-
-function renderMap() {
-  mapBox.innerHTML = "";
-
-  Object.entries(locations).forEach(([id, location]) => {
-    const button = document.createElement("button");
-    button.className = "map-button";
-    if (id === player.location) button.classList.add("active");
-
-    button.textContent = location.name;
-    button.addEventListener("click", () => {
-      if (id === "sanctuary") travel("sanctuary", "sanctuary_hub");
-      if (id === "village") travel("village", "village_square");
-      if (id === "forest") travel("forest", "forest_edge");
-      if (id === "catacombs") travel("catacombs", "catacombs_gate");
-      if (id === "innerTemple") travel("innerTemple", player.path ? `${player.path}_start` : "ascension_choice");
+async function apiGetSave() {
+  try {
+    const response = await fetch("/api/save", {
+      headers: {
+        Authorization: `Bearer ${authToken}`
+      }
     });
 
-    mapBox.appendChild(button);
-  });
+    return await response.json();
+  } catch {
+    return { ok: false };
+  }
 }
 
-function renderCondition() {
-  const dangerClass = player.suspicion >= 70 ? "bad" : player.suspicion >= 40 ? "warn" : "good";
-  const humanityClass = player.humanity <= 30 ? "bad" : player.humanity <= 60 ? "warn" : "good";
+async function apiPost(url, data) {
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+      },
+      body: JSON.stringify(data)
+    });
 
-  conditionBox.innerHTML = `
-    <p class="condition-line">Підозра світу: <span class="${dangerClass}">${getSuspicionText()}</span></p>
-    <p class="condition-line">Людяність: <span class="${humanityClass}">${getHumanityText()}</span></p>
-    <p class="condition-line">Шлях: ${getPathText()}</p>
-    <p class="condition-line">Мутації: ${player.mutations.length ? player.mutations.join(", ") : "немає"}</p>
-  `;
-}
-
-function getSuspicionText() {
-  if (player.suspicion >= 70) return "критична";
-  if (player.suspicion >= 40) return "небезпечна";
-  return "низька";
-}
-
-function getHumanityText() {
-  if (player.humanity <= 30) return "майже втрачена";
-  if (player.humanity <= 60) return "пошкоджена";
-  return "стабільна";
-}
-
-function getPathText() {
-  if (player.path === "servant") return "Пророк Матері";
-  if (player.path === "usurper") return "Узурпатор";
-  if (player.path === "renegade") return "Відступник";
-  return "ще не обрано";
-}
-
-function getChapterName() {
-  if (player.chapter === 1) return "Глава I: Народження культу";
-  if (player.chapter === 2) return "Глава II: Тінь над селищем";
-  if (player.chapter === 3) return "Глава III: Зрада Матері";
-  if (player.chapter === 4) return "Глава IV: Наслідки вибору";
-  return "Глава V: Останній шлях";
-}
-
-function log(text) {
-  const p = document.createElement("p");
-  p.textContent = text;
-  logBox.prepend(p);
-
-  player.history.unshift(text);
-  player.history = player.history.slice(0, 60);
+    return await response.json();
+  } catch {
+    return { ok: false, error: "Сервер недоступний" };
+  }
 }
