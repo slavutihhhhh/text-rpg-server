@@ -5,68 +5,96 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: Georgia, "Times New Roman", serif;
-  color: #eadfce;
+  color: #d8d1c3;
   background:
-    radial-gradient(circle at top left, rgba(120, 70, 20, 0.25), transparent 30%),
-    linear-gradient(135deg, #100b07, #20140d 60%, #090604);
+    radial-gradient(circle at top, rgba(166, 112, 45, 0.14), transparent 32%),
+    linear-gradient(180deg, #0b0907, #15100c 55%, #070504);
+  font-family: Georgia, "Times New Roman", serif;
 }
 
-.app {
-  width: min(1240px, 95vw);
+.shell {
+  width: min(1320px, 96vw);
   margin: 0 auto;
-  padding: 22px 0;
+  padding: 24px 0;
 }
 
-.hero,
-.panel {
-  background: rgba(24, 16, 10, 0.9);
-  border: 1px solid rgba(230, 180, 100, 0.18);
-  box-shadow: 0 20px 70px rgba(0,0,0,0.55);
-}
-
-.hero {
-  padding: 30px;
-  border-radius: 24px;
-  margin-bottom: 20px;
+.top {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: end;
+  padding: 18px 4px 24px;
+  border-bottom: 1px solid rgba(220, 170, 90, 0.18);
+  margin-bottom: 22px;
 }
 
 .eyebrow {
-  color: #c99645;
+  margin: 0;
+  color: #b98642;
   text-transform: uppercase;
-  letter-spacing: 3px;
-  font-weight: bold;
+  letter-spacing: 4px;
+  font-size: 12px;
 }
 
 h1 {
-  margin: 0;
-  font-size: clamp(42px, 6vw, 72px);
-  color: #e6b861;
+  margin: 4px 0 0;
+  font-size: clamp(44px, 7vw, 86px);
+  color: #d8a85c;
+  font-weight: 500;
 }
 
 h2,
 h3 {
-  color: #d49b52;
+  color: #d0a15a;
+  font-weight: 500;
 }
 
-.subtitle,
-#sceneText,
-#locationText,
-#worldBox,
-#peopleBox {
-  color: #cdbca8;
-  line-height: 1.55;
+.tagline,
+.muted,
+.notice {
+  color: #9f9585;
 }
 
-.layout {
+.app {
+  min-height: 70vh;
+}
+
+.screen,
+.game {
+  background: rgba(15, 11, 8, 0.86);
+  border: 1px solid rgba(220, 170, 90, 0.14);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  border-radius: 18px;
+}
+
+.screen {
+  max-width: 560px;
+  margin: 50px auto;
+  padding: 28px;
+}
+
+.game {
   display: grid;
-  grid-template-columns: 1.35fr 0.85fr;
-  gap: 20px;
+  grid-template-columns: 290px 1fr 330px;
+  gap: 0;
+  overflow: hidden;
 }
 
-.panel {
-  padding: 22px;
-  border-radius: 22px;
+.left,
+.center,
+.right {
+  padding: 24px;
+}
+
+.left,
+.right {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.center {
+  border-left: 1px solid rgba(220, 170, 90, 0.1);
+  border-right: 1px solid rgba(220, 170, 90, 0.1);
+  min-height: 680px;
 }
 
 .hidden {
@@ -76,122 +104,150 @@ h3 {
 input,
 select {
   width: 100%;
-  padding: 13px;
-  margin: 8px 0;
+  margin: 8px 0 14px;
+  padding: 13px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(230,180,100,0.25);
-  background: rgba(0,0,0,0.35);
-  color: #eadfce;
+  border: 1px solid rgba(220, 170, 90, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  color: #d8d1c3;
+  font-family: inherit;
+  font-size: 15px;
 }
 
 button {
-  padding: 12px 16px;
+  border: 1px solid rgba(220, 170, 90, 0.22);
+  background: rgba(216, 168, 92, 0.12);
+  color: #e6c58f;
+  padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(230,180,100,0.25);
   cursor: pointer;
-  color: #1b1108;
-  background: linear-gradient(135deg, #d8a84f, #a55d28);
-  font-weight: 800;
+  font-family: inherit;
+  font-size: 15px;
+  text-align: left;
 }
 
 button:hover {
-  filter: brightness(1.08);
+  background: rgba(216, 168, 92, 0.22);
 }
 
-.actions,
-.choices {
+.row {
   display: flex;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
 }
 
-.choices button {
-  width: 100%;
-  text-align: left;
-  line-height: 1.35;
+.row button {
+  flex: 1;
+  text-align: center;
 }
 
-.topline {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-}
-
-.stats-grid {
+.stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 11px;
-  margin: 16px 0;
+  gap: 8px;
+  margin: 18px 0 24px;
 }
 
-.stat {
-  background: rgba(255,255,255,0.045);
-  border: 1px solid rgba(230,180,100,0.12);
-  border-radius: 14px;
-  padding: 12px;
+.stats div,
+.person,
+.world-item {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(220, 170, 90, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.stats div {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
-.stat strong {
-  color: #e6b861;
+.stats span {
+  color: #9f9585;
 }
 
-.scene {
-  background: rgba(70, 40, 18, 0.25);
-  border: 1px solid rgba(230,180,100,0.14);
-  padding: 20px;
-  border-radius: 18px;
-  min-height: 360px;
+.stats strong {
+  color: #d8a85c;
 }
 
-.scene-place {
-  color: #e6b861;
+.stack {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.place {
+  margin: 0;
+  color: #b98642;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  font-size: 13px;
-  font-weight: bold;
+  letter-spacing: 3px;
+  font-size: 12px;
 }
 
-.log {
-  height: 330px;
+.story {
+  color: #d8d1c3;
+  line-height: 1.72;
+  white-space: pre-line;
+  font-size: 18px;
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.actions button {
+  width: 100%;
+  padding: 15px;
+}
+
+.memory {
+  height: 620px;
   overflow-y: auto;
-  background: rgba(0,0,0,0.35);
-  border-radius: 12px;
-  padding: 12px;
+  padding-right: 6px;
   font-family: Consolas, monospace;
+  font-size: 13px;
+  color: #b9ad9c;
 }
 
-.log p {
-  margin: 0 0 9px;
+.memory p {
+  margin: 0 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(220, 170, 90, 0.08);
 }
 
-.person,
-.world-line {
-  background: rgba(0,0,0,0.22);
-  padding: 10px;
-  border-radius: 10px;
-  margin-bottom: 8px;
+.good {
+  color: #8bd68b;
 }
 
-.good { color: #83ff9d; }
-.warn { color: #e6b861; }
-.bad { color: #ff7b7b; }
+.warn {
+  color: #d8a85c;
+}
 
-@media (max-width: 900px) {
-  .layout {
+.bad {
+  color: #e07968;
+}
+
+@media (max-width: 1050px) {
+  .game {
     grid-template-columns: 1fr;
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .center {
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid rgba(220, 170, 90, 0.1);
+    border-bottom: 1px solid rgba(220, 170, 90, 0.1);
+    min-height: auto;
   }
 
-  .topline {
+  .memory {
+    height: 260px;
+  }
+
+  .top {
+    align-items: start;
     flex-direction: column;
-    align-items: stretch;
   }
 }
