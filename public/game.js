@@ -133,6 +133,32 @@ function applyBackground(p) {
   }
 }
 
+function mergeSave(save) {
+  const base = createNewPlayer();
+
+  return {
+    ...base,
+    ...save,
+
+    relations: {
+      ...base.relations,
+      ...(save.relations || {})
+    },
+
+    flags: {
+      ...base.flags,
+      ...(save.flags || {})
+    },
+
+    world: {
+      ...base.world,
+      ...(save.world || {})
+    },
+
+    memory: save.memory || []
+  };
+}
+
 let player = createNewPlayer();
 
 const origins = {
@@ -174,15 +200,10 @@ const locations = {
 
     actions: () => [
       action("Піти до кузні Роби", () => move("blacksmith")),
-
       action("Піти до крамниці Радія", () => move("shop")),
-
       action("Поговорити з лікарем", () => move("doctor")),
-
       action("Просто пройтись містом", wanderSquare),
-
       action("Переночувати в таверні — 5 золота", sleepAtTavern),
-
       action(
         "Бродити нічними вулицями",
         nightWalk,
@@ -303,7 +324,6 @@ const locations = {
       action("Сказати: “Я зберу трави”", () => {
         player.flags.knowsAboutHerbs = true;
         player.flags.promisedHerbs = true;
-
         player.relations.doctor += 8;
 
         remember("Ти пообіцяв лікарю зібрати срібні трави.");
@@ -441,7 +461,6 @@ function move(location) {
 
 function say(text) {
   mainText.textContent = text;
-
   actionsBox.innerHTML = "";
 
   addButton("Продовжити", () => render());
@@ -461,9 +480,7 @@ function talkRobaDaughter() {
 
 function buyBadKnife() {
   player.gold -= 5;
-
   player.relations.roba += 12;
-
   player.flags.boughtFromRoba = true;
 
   remember("Ти купив у Роби поганий ніж.");
@@ -495,7 +512,6 @@ function hurtRoba() {
 
 function doctorJob() {
   player.gold += 4;
-
   player.energy -= 15;
 
   gainXp(6);
@@ -512,9 +528,7 @@ function gatherHerbs() {
   player.health -= 10;
 
   player.flags.savedDaughter = true;
-
   player.world.daughter = "врятована";
-
   player.relations.roba += 30;
 
   gainXp(35);
@@ -538,8 +552,8 @@ function acceptRobaSword() {
 
 function buyFoodRadiy() {
   player.gold -= 3;
-
   player.relations.radiy += 8;
+  player.flags.helpedRadiySmall = true;
 
   remember("Ти купив їжу у Радія.");
 
@@ -552,6 +566,7 @@ function buyFoodRadiy() {
 
 function askRoomRadiy() {
   player.relations.radiy += 5;
+  player.flags.helpedRadiySmall = true;
 
   remember("Ти спитав Радія про кімнату.");
 
@@ -564,15 +579,17 @@ function triggerRadiyArrest() {
   if (player.flags.radiyArrested) return;
 
   player.flags.radiyArrested = true;
+  player.flags.canTakeShop = true;
 
   player.world.radiy = "арештований";
+  player.world.brother = "не врятований";
+  player.world.economy = "тріщить";
 
   remember("Радія забрала варта.");
 }
 
 function helpRadiyAfterArrest() {
   player.relations.guard -= 6;
-
   player.suspicion += 6;
 
   remember("Ти спробував втрутитись.");
@@ -597,8 +614,8 @@ function setShopPrices(price) {
 
   if (price === "високі") {
     player.gold += 12;
-
     player.relations.roba -= 5;
+    player.suspicion += 4;
 
     remember("Ти підняв ціни.");
 
@@ -610,6 +627,7 @@ function setShopPrices(price) {
 
   if (price === "низькі") {
     player.gold += 2;
+    player.relations.guard -= 2;
 
     remember("Ти знизив ціни.");
 
@@ -637,18 +655,9 @@ function sleepAtTavern() {
   }
 
   player.gold -= 5;
-
   player.energy = player.maxEnergy;
-
-  player.health = Math.min(
-    player.maxHealth,
-    player.health + 15
-  );
-
-  player.world.hunger = Math.max(
-    0,
-    player.world.hunger - 40
-  );
+  player.health = Math.min(player.maxHealth, player.health + 15);
+  player.world.hunger = Math.max(0, player.world.hunger - 40);
 
   passTime(2);
 
@@ -668,7 +677,6 @@ function nightWalk() {
     const stolen = Math.min(player.gold, 6);
 
     player.gold -= stolen;
-
     player.health -= 10;
 
     remember(`Тебе пограбували. Втрачено ${stolen} золота.`);
@@ -704,11 +712,9 @@ function wanderSquare() {
     !player.flags.daughterLost
   ) {
     player.flags.daughterLost = true;
-
     player.flags.robaGone = true;
 
     player.world.daughter = "померла";
-
     player.world.roba = "зник";
 
     remember("Роба втратив доньку й покинув Каравел.");
@@ -729,18 +735,17 @@ function passTime(hours = 1) {
 
   let currentIndex = times.indexOf(player.world.time);
 
+  if (currentIndex === -1) {
+    currentIndex = 0;
+    player.world.time = "morning";
+  }
+
   currentIndex += hours;
 
   while (currentIndex >= times.length) {
     currentIndex -= times.length;
-
     player.world.day += 1;
-
-    player.energy = Math.min(
-      player.maxEnergy,
-      player.energy + 20
-    );
-
+    player.energy = Math.min(player.maxEnergy, player.energy + 20);
     player.world.hunger += 20;
   }
 
@@ -753,6 +758,10 @@ function passTime(hours = 1) {
   if (!player.flags.savedDaughter && player.world.day >= 3) {
     player.world.daughter = "гірше";
   }
+
+  if (!player.flags.helpedRadiySmall && player.world.day >= 3) {
+    player.world.brother = "викуп росте";
+  }
 }
 
 function gainXp(amount) {
@@ -760,12 +769,9 @@ function gainXp(amount) {
 
   while (player.xp >= player.level * 40) {
     player.xp -= player.level * 40;
-
     player.level += 1;
-
     player.maxHealth += 5;
     player.maxEnergy += 5;
-
     player.health = player.maxHealth;
     player.energy = player.maxEnergy;
 
@@ -775,7 +781,6 @@ function gainXp(amount) {
 
 function remember(text) {
   player.memory.unshift(text);
-
   player.memory = player.memory.slice(0, 80);
 
   saveGame(false);
@@ -783,12 +788,12 @@ function remember(text) {
 
 function normalize() {
   player.health = clamp(player.health, 1, player.maxHealth);
-
   player.energy = clamp(player.energy, 0, player.maxEnergy);
-
   player.gold = Math.max(0, player.gold);
-
   player.suspicion = clamp(player.suspicion, 0, 100);
+
+  if (!player.world.time) player.world.time = "morning";
+  if (typeof player.world.hunger !== "number") player.world.hunger = 0;
 }
 
 function clamp(value, min, max) {
@@ -798,33 +803,20 @@ function clamp(value, min, max) {
 function render() {
   normalize();
 
-  const location =
-    locations[player.location] || locations.square;
+  const location = locations[player.location] || locations.square;
 
-  playerName.textContent =
-    player.name || "Безіменний";
+  playerName.textContent = player.name || "Безіменний";
+  playerOrigin.textContent = origins[player.background] || "";
 
-  playerOrigin.textContent =
-    origins[player.background] || "";
-
-  healthStat.textContent =
-    `${player.health}/${player.maxHealth}`;
-
-  energyStat.textContent =
-    `${player.energy}/${player.maxEnergy}`;
-
+  healthStat.textContent = `${player.health}/${player.maxHealth}`;
+  energyStat.textContent = `${player.energy}/${player.maxEnergy}`;
   goldStat.textContent = player.gold;
-
   levelStat.textContent = player.level;
-
   xpStat.textContent = player.xp;
-
   suspicionStat.textContent = player.suspicion;
 
   placeLabel.textContent = location.place;
-
   locationTitle.textContent = location.title;
-
   mainText.textContent = location.text();
 
   actionsBox.innerHTML = "";
@@ -834,17 +826,13 @@ function render() {
 
     addButton(a.text, () => {
       a.fn();
-
       normalize();
-
       render();
     });
   });
 
   renderPeople();
-
   renderWorld();
-
   renderMemory();
 }
 
@@ -885,18 +873,10 @@ function renderPeople() {
 }
 
 function relationText(value) {
-  if (value >= 25)
-    return `<span class="good">довіряє тобі</span>`;
-
-  if (value >= 8)
-    return `<span class="good">ставиться тепліше</span>`;
-
-  if (value <= -20)
-    return `<span class="bad">памʼятає образу</span>`;
-
-  if (value <= -5)
-    return `<span class="warn">холодне ставлення</span>`;
-
+  if (value >= 25) return `<span class="good">довіряє тобі</span>`;
+  if (value >= 8) return `<span class="good">ставиться тепліше</span>`;
+  if (value <= -20) return `<span class="bad">памʼятає образу</span>`;
+  if (value <= -5) return `<span class="warn">холодне ставлення</span>`;
   return `<span class="muted">нейтрально</span>`;
 }
 
@@ -910,38 +890,22 @@ function renderWorld() {
 
   let hungerText = "ситий";
 
-  if (player.world.hunger >= 30) {
-    hungerText = "голодний";
-  }
-
-  if (player.world.hunger >= 60) {
-    hungerText = "дуже голодний";
-  }
-
-  if (player.world.hunger >= 85) {
-    hungerText = "виснажений голодом";
-  }
+  if (player.world.hunger >= 30) hungerText = "голодний";
+  if (player.world.hunger >= 60) hungerText = "дуже голодний";
+  if (player.world.hunger >= 85) hungerText = "виснажений голодом";
 
   worldBox.innerHTML = `
-    <div class="world-item">
-      День: ${player.world.day}
-    </div>
-
-    <div class="world-item">
-      Час: ${timeNames[player.world.time]}
-    </div>
-
-    <div class="world-item">
-      Стан: ${hungerText}
-    </div>
-
-    <div class="world-item">
-      Донька Роби: ${player.world.daughter}
-    </div>
-
-    <div class="world-item">
-      Брат Радія: ${player.world.brother}
-    </div>
+    <div class="world-item">День: ${player.world.day}</div>
+    <div class="world-item">Час: ${timeNames[player.world.time] || "ранок"}</div>
+    <div class="world-item">Стан: ${hungerText}</div>
+    <div class="world-item">Донька Роби: ${player.world.daughter}</div>
+    <div class="world-item">Брат Радія: ${player.world.brother}</div>
+    <div class="world-item">Економіка: ${player.world.economy}</div>
+    ${
+      player.flags.ownsShop
+        ? `<div class="world-item">Твоя крамниця: ціни ${player.world.shopPrices}</div>`
+        : ""
+    }
   `;
 }
 
@@ -949,29 +913,30 @@ function renderMemory() {
   memoryBox.innerHTML = "";
 
   if (!player.memory.length) {
-    memoryBox.innerHTML =
-      `<p>Світ ще нічого про тебе не памʼятає.</p>`;
+    memoryBox.innerHTML = `<p>Світ ще нічого про тебе не памʼятає.</p>`;
     return;
   }
 
   player.memory.forEach((m) => {
     const p = document.createElement("p");
-
     p.textContent = m;
-
     memoryBox.appendChild(p);
   });
 }
 
 loginBtn.addEventListener("click", login);
-
 registerBtn.addEventListener("click", register);
-
 startBtn.addEventListener("click", startGame);
-
 saveBtn.addEventListener("click", () => saveGame(true));
-
 logoutBtn.addEventListener("click", logout);
+
+passwordInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") login();
+});
+
+nameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") startGame();
+});
 
 init();
 
@@ -987,26 +952,18 @@ async function init() {
 
   if (!result.ok) {
     localStorage.removeItem(TOKEN_KEY);
-
     localStorage.removeItem(USER_KEY);
 
     authToken = null;
-
     currentUser = null;
 
     showAuth();
-
     return;
   }
 
   if (result.save) {
-    player = {
-      ...createNewPlayer(),
-      ...result.save
-    };
-
+    player = mergeSave(result.save);
     showGame();
-
     render();
   } else {
     showStart();
@@ -1015,7 +972,6 @@ async function init() {
 
 async function register() {
   const username = loginInput.value.trim();
-
   const password = passwordInput.value.trim();
 
   const result = await apiPost("/api/register", {
@@ -1024,18 +980,14 @@ async function register() {
   });
 
   if (!result.ok) {
-    authMessage.textContent =
-      result.error || "Помилка";
-
+    authMessage.textContent = result.error || "Помилка";
     return;
   }
 
   authToken = result.token;
-
   currentUser = result.username;
 
   localStorage.setItem(TOKEN_KEY, authToken);
-
   localStorage.setItem(USER_KEY, currentUser);
 
   player = createNewPlayer();
@@ -1045,7 +997,6 @@ async function register() {
 
 async function login() {
   const username = loginInput.value.trim();
-
   const password = passwordInput.value.trim();
 
   const result = await apiPost("/api/login", {
@@ -1054,32 +1005,22 @@ async function login() {
   });
 
   if (!result.ok) {
-    authMessage.textContent =
-      result.error || "Помилка";
-
+    authMessage.textContent = result.error || "Помилка";
     return;
   }
 
   authToken = result.token;
-
   currentUser = result.username;
 
   localStorage.setItem(TOKEN_KEY, authToken);
-
   localStorage.setItem(USER_KEY, currentUser);
 
   if (result.save) {
-    player = {
-      ...createNewPlayer(),
-      ...result.save
-    };
-
+    player = mergeSave(result.save);
     showGame();
-
     render();
   } else {
     player = createNewPlayer();
-
     showStart();
   }
 }
@@ -1088,13 +1029,10 @@ function logout() {
   apiPost("/api/logout", {});
 
   localStorage.removeItem(TOKEN_KEY);
-
   localStorage.removeItem(USER_KEY);
 
   authToken = null;
-
   currentUser = null;
-
   player = createNewPlayer();
 
   showAuth();
@@ -1108,17 +1046,12 @@ function startGame() {
     return;
   }
 
-  player = createNewPlayer(
-    name,
-    backgroundSelect.value
-  );
+  player = createNewPlayer(name, backgroundSelect.value);
 
   remember("Ти прокинувся на площі Каравела.");
 
   showGame();
-
   saveGame(false);
-
   render();
 }
 
@@ -1130,25 +1063,19 @@ function hideAll() {
 
 function showAuth() {
   authPanel.classList.remove("hidden");
-
   startPanel.classList.add("hidden");
-
   gamePanel.classList.add("hidden");
 }
 
 function showStart() {
   authPanel.classList.add("hidden");
-
   startPanel.classList.remove("hidden");
-
   gamePanel.classList.add("hidden");
 }
 
 function showGame() {
   authPanel.classList.add("hidden");
-
   startPanel.classList.add("hidden");
-
   gamePanel.classList.remove("hidden");
 }
 
@@ -1163,7 +1090,6 @@ async function saveGame(showLog = true) {
 
   if (showLog) {
     player.memory.unshift("Гру збережено.");
-
     renderMemory();
   }
 }
@@ -1189,7 +1115,6 @@ async function apiPost(url, data) {
 
       headers: {
         "Content-Type": "application/json",
-
         ...(authToken
           ? {
               Authorization: `Bearer ${authToken}`
