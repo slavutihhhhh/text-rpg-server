@@ -87,9 +87,6 @@ function createNewPlayer(name = "", background = "peasant") {
 
     world: {
       day: 1,
-      time: "morning",
-      hunger: 0,
-
       daughter: "хворіє",
       brother: "у полоні",
       roba: "у відчаї",
@@ -133,32 +130,6 @@ function applyBackground(p) {
   }
 }
 
-function mergeSave(save) {
-  const base = createNewPlayer();
-
-  return {
-    ...base,
-    ...save,
-
-    relations: {
-      ...base.relations,
-      ...(save.relations || {})
-    },
-
-    flags: {
-      ...base.flags,
-      ...(save.flags || {})
-    },
-
-    world: {
-      ...base.world,
-      ...(save.world || {})
-    },
-
-    memory: save.memory || []
-  };
-}
-
 let player = createNewPlayer();
 
 const origins = {
@@ -177,80 +148,67 @@ const locations = {
       if (!player.flags.metRoba) {
         return `Ти прокидаєшся на холодній камʼяній площі Каравела.
 
-Варта дивиться на тебе з підозрою, але швидко втрачає інтерес.
+Варта дивиться на тебе з підозрою, але, побачивши твій жалюгідний вигляд, переключає увагу на когось більш важливого.
 
-Неподалік у кузні щось падає з гучним лязкотом.`;
+Неподалік, у кузні, щось із лязкотом падає на підлогу.`;
       }
 
       if (player.flags.radiyArrested) {
         return `Площа Каравела стала тихішою.
 
-Люди говорять пошепки. Усі знають, що Радія забрала варта.`;
+Люди говорять пошепки. Усі знають, що Радія забрала варта. Ніхто не знає, хто займе його місце.
+
+Або роблять вигляд, що не знають.`;
       }
 
       return `Площа Каравела живе своїм життям.
 
-Хтось свариться через ціни.
-Хтось обговорює короля.
-Хтось мовчки несе воду.
+Хтось сперечається про ціни. Хтось говорить про хвору доньку коваля. Хтось згадує Радія, який останнім часом надто часто ходить до замкових людей.
 
-Каравел не чекає тебе.
-Але памʼятає.`;
+Ти можеш піти куди хочеш. Каравел не чекає тебе — але памʼятає.`;
     },
-
     actions: () => [
       action("Піти до кузні Роби", () => move("blacksmith")),
       action("Піти до крамниці Радія", () => move("shop")),
-      action("Поговорити з лікарем", () => move("doctor")),
-      action("Просто пройтись містом", wanderSquare),
-      action("Переночувати в таверні — 5 золота", sleepAtTavern),
-      action(
-        "Бродити нічними вулицями",
-        nightWalk,
-        () => player.world.time === "night"
-      )
+      action("Поговорити з лікарем на площі", () => move("doctor")),
+      action("Просто пройтись і подивитись на місто", wanderSquare)
     ]
   },
 
   blacksmith: {
     place: "Каравел",
     title: "Кузня Роби",
-
     text: () => {
       if (player.flags.robaGone) {
         return `Кузня порожня.
 
-Горн холодний.
-Молот мовчить.`;
+Горн холодний. На дверях лишився слід від старої вивіски. Місце, де колись лунав молот, тепер мовчить.`;
       }
 
       if (player.flags.savedDaughter) {
-        return `Горн у кузні знову горить яскраво.
+        return `Горн у кузні Роби горить яскраво.
 
-Роба виглядає виснаженим, але живим.
+Роба працює спокійніше. Не щасливо — ні. Такі люди не стають щасливими за одну ніч. Але в його рухах більше немає того відчаю, який ти бачив раніше.
 
-На стіні висить меч, зроблений для тебе.`;
+На стіні висить меч, який він зробив для тебе.`;
       }
 
       if (player.relations.roba <= -15) {
-        return `Роба навіть не дивиться на тебе.
+        return `Роба навіть не піднімає очей.
 
-“Я не хочу зараз говорити.”`;
+“Я зараз не хочу з тобою говорити.”
+
+Молот падає на метал важче, ніж потрібно.`;
       }
 
       return `Роба стоїть біля полиць із поганим товаром.
 
-Ніж.
-Лом.
-Шолом низької якості.
+Ніж. Лом. Шолом низької якості. Кольчуга, яка від будь-якого дотику от-от розпадеться.
 
-“Метал нікудишній...”
+Він дивиться на тебе з болем і надією.
 
-Він важко видихає.
-
-“А моя донька з кожним днем слабшає.”`;
+“Купець знову за своє. Метал нікудишній. Я не можу з цим працювати. А моя донька... з кожним днем їй усе гірше.”`;
     },
-
     actions: () => {
       if (player.flags.robaGone) {
         return [
@@ -260,43 +218,33 @@ const locations = {
 
       if (player.flags.savedDaughter) {
         return [
-          action(
-            "Прийняти меч Роби",
-            acceptRobaSword,
-            () => !player.flags.robaSwordTaken
-          ),
+          action("Прийняти меч Роби", acceptRobaSword, () => !player.flags.robaSwordTaken),
+          action("Поговорити з Робою", () => say(`Роба проводить рукою по краю ковадла.
 
-          action("Поговорити з Робою", () => {
-            say(`Роба проводить рукою по ковадлу.
-
-“Я не забуду, що ти зробив.”`);
-          }),
-
+“Я не забуду, що ти зробив. Не всі в Каравелі проходять повз чужий біль.”`)),
           action("Повернутись на площу", () => move("square"))
+        ];
+      }
+
+      if (player.relations.roba <= -15) {
+        return [
+          action("Піти", () => move("square"))
         ];
       }
 
       return [
         action("Поговорити про доньку", talkRobaDaughter),
-
-        action(
-          "Купити поганий ніж — 5 золота",
-          buyBadKnife,
-          () => player.gold >= 5 && !player.flags.boughtFromRoba
-        ),
-
+        action("Купити поганий ніж — 5 золота", buyBadKnife, () => player.gold >= 5 && !player.flags.boughtFromRoba),
         action("Запитати про купця", askAboutRadiy),
-
         action("Сказати: “У кожного свої проблеми”", hurtRoba),
-
-        action("Просто постояти поруч", () => {
-          say(`Ти мовчки стоїш поруч.
-
-Роба більше нічого не каже.
-
-Іноді мовчання теж щось означає.`);
+        action("Мовчки піти", () => {
+          player.relations.roba -= 5;
+          remember("Ти мовчки пішов із кузні. Роба це запамʼятав.");
+          move("square");
         }),
+        action("Залишитись у кузні й нічого не робити", () => say(`Ти стоїш мовчки.
 
+Роба більше нічого не каже. Іноді мовчання допомагає. Іноді — ранить сильніше за слова.`)),
         action("Повернутись на площу", () => move("square"))
       ];
     }
@@ -305,34 +253,29 @@ const locations = {
   doctor: {
     place: "Площа Каравела",
     title: "Старий лікар",
-
     text: () => {
       if (!player.flags.knowsAboutHerbs) {
-        return `Старий лікар перебирає висушені трави.
+        return `Старий лікар перебирає висушені трави в потертій сумці.
 
-“Якщо мова про доньку Роби — монет замало.
+Він помічає, що ти прийшов із боку кузні.
 
-Потрібні срібні трави з Чорного Яру.”`;
+“Якщо мова про доньку Роби — монет замало. Потрібні срібні трави з Чорного Яру. Без них усе марно.”`;
       }
 
-      return `Лікар уважно дивиться на тебе.
+      return `Лікар дивиться на тебе втомлено.
 
-“Чорний Яр не любить чужинців.”`;
+“Чорний Яр не місце для дурнів. Але іноді тільки дурень і може врятувати життя.”`;
     },
-
     actions: () => [
       action("Сказати: “Я зберу трави”", () => {
+        player.flags.metDoctor = true;
         player.flags.knowsAboutHerbs = true;
         player.flags.promisedHerbs = true;
         player.relations.doctor += 8;
-
-        remember("Ти пообіцяв лікарю зібрати срібні трави.");
-
+        remember("Ти пообіцяв лікарю зібрати срібні трави для доньки Роби.");
         move("ravine");
       }),
-
-      action("Попросити іншу роботу", doctorJob),
-
+      action("Спитати, чи немає іншої роботи", doctorJob),
       action("Повернутись на площу", () => move("square"))
     ]
   },
@@ -340,25 +283,19 @@ const locations = {
   ravine: {
     place: "За межами Каравела",
     title: "Чорний Яр",
+    text: () => `Чорний Яр лежить нижче дороги, там, де сонце швидко зникає за скелями.
 
-    text: () => `Чорний Яр лежить нижче дороги.
+Срібні трави ростуть між темним корінням. Поряд чути воду. Або щось схоже на воду.
 
-Сирість.
-Темрява.
-І срібні трави серед коріння.
-
-Тут легко загубитись.`,
-
+Тут легко зробити правильну річ.
+І так само легко не повернутись.`,
     actions: () => [
       action("Обережно збирати трави", gatherHerbs),
-
-      action("Повернутись назад", () => {
+      action("Злякатись і повернутись", () => {
         player.energy -= 10;
-
-        remember("Ти не наважився ризикувати в Чорному Яру.");
-
+        player.relations.roba -= 4;
+        remember("Ти дійшов до Чорного Яру, але не зміг змусити себе ризикнути.");
         passTime();
-
         move("square");
       })
     ]
@@ -367,84 +304,69 @@ const locations = {
   shop: {
     place: "Каравел",
     title: "Крамниця Радія",
-
     text: () => {
       if (player.flags.radiyArrested && !player.flags.ownsShop) {
-        return `Крамниця Радія майже порожня.
+        return `Крамниця Радія стоїть майже порожня.
 
-На столі лежать рахунки.
+На столі лишились рахунки. Двері ще не опечатані.
 
-Двері ще не опечатані.`;
+Ти не знаєш, чи це шанс, чи пастка.`;
       }
 
       if (player.flags.ownsShop) {
         return `Тепер за прилавком стоїш ти.
 
-Колись ти дивився на Радія збоку.
+Люди заходять обережно. Дехто дивиться з надією. Дехто — з недовірою.
 
+Колись ти дивився на Радія з боку.
 Тепер хтось дивиться так на тебе.`;
       }
 
-      return `Крамниця Радія тепла й затишна.
+      return `Крамниця Радія тепла й затишна. Пахне спеціями, сухофруктами і грошима.
 
-Пахне спеціями, сухофруктами й грошима.
+Радій — крупний чоловік із посмішкою, яка одразу привертає увагу.
 
-“Мій брат у полоні в ДегРані...”
+Коли ти питаєш про метал для Роби, посмішка слабне.
 
-Посмішка Радія слабне.
+“О, мій дорогий друже. Він уже й тобі пожалівся? Але зрозумій... його донька хоч і хвора, але вона вдома.”
 
-“І часу дедалі менше.”`;
+Його руки починають тремтіти.
+
+“Мій брат у полоні в ДегРані. Король Магнус вимагає викуп. І з кожним днем сума росте.”`;
     },
-
     actions: () => {
       if (player.flags.radiyArrested && !player.flags.ownsShop) {
         return [
           action("Спробувати зайняти місце купця", takeShop),
-
           action("Спробувати допомогти Радію", helpRadiyAfterArrest),
-
           action("Повернутись на площу", () => move("square"))
         ];
       }
 
       if (player.flags.ownsShop) {
         return [
-          action("Тримати звичайні ціни", () =>
-            setShopPrices("звичайні")
-          ),
-
-          action("Підняти ціни", () =>
-            setShopPrices("високі")
-          ),
-
-          action("Знизити ціни", () =>
-            setShopPrices("низькі")
-          ),
-
+          action("Тримати звичайні ціни", () => setShopPrices("звичайні")),
+          action("Підняти ціни", () => setShopPrices("високі")),
+          action("Знизити ціни", () => setShopPrices("низькі")),
           action("Повернутись на площу", () => move("square"))
         ];
       }
 
       return [
-        action(
-          "Купити їжу — 3 золота",
-          buyFoodRadiy,
-          () => player.gold >= 3
-        ),
-
-        action("Спитати про кімнату", askRoomRadiy),
-
-        action("Нічого не купувати", () => {
+        action("Купити їжу — 3 золота", buyFoodRadiy, () => player.gold >= 3),
+        action("Спитати, де можна зняти кімнату", askRoomRadiy),
+        action("Подивитись на товар і нічого не купити", () => {
           player.relations.radiy -= 3;
-
-          remember("Ти нічого не купив у Радія.");
-
+          remember("Ти довго дивився на товар Радія, але нічого не купив.");
           say(`Радій не перестає посміхатись.
 
-“Безкоштовно тут лише повітря.”`);
+“Якщо шукаєш щось дешевше за безкоштовне — у мене такого немає.”`);
         }),
-
-        action("Повернутись на площу", () => move("square"))
+        action("Піти", () => {
+          player.relations.radiy -= 2;
+          remember("Ти вислухав Радія і пішов.");
+          move("square");
+        })
       ];
     }
   }
@@ -462,90 +384,100 @@ function move(location) {
 function say(text) {
   mainText.textContent = text;
   actionsBox.innerHTML = "";
-
   addButton("Продовжити", () => render());
 }
 
 function talkRobaDaughter() {
   player.flags.metRoba = true;
+  remember("Роба розповів тобі про хворобу доньки.");
 
-  remember("Роба розповів тобі про свою доньку.");
+  say(`Роба витирає руки об фартух.
 
-  say(`“Я не прошу жалості.”
+“Я не прошу жалості. Мені нема коли її слухати.”
 
-Роба дивиться на полиці з поганим товаром.
+Він дивиться на полиці з поганим товаром.
 
-“Я прошу шанс для неї.”`);
+“Я прошу шанс. Для неї.”`);
 }
 
 function buyBadKnife() {
   player.gold -= 5;
   player.relations.roba += 12;
   player.flags.boughtFromRoba = true;
+  remember("Ти купив у Роби поганий ніж, хоча розумів, що він майже нічого не вартий.");
 
-  remember("Ти купив у Роби поганий ніж.");
+  say(`Роба бере монети повільно.
 
-  say(`Роба повільно бере монети.
+Він розуміє, що ти купив не товар. Ти купив йому трохи часу.
 
-“Сьогодні я хоча б не повернусь додому з порожніми руками.”`);
+“Дякую. Сьогодні я хоча б не повернусь додому з порожніми руками.”`);
 }
 
 function askAboutRadiy() {
   player.flags.knowsRadiyName = true;
-
   remember("Роба назвав тобі імʼя купця — Радій.");
 
-  say(`“Радій.
+  say(`Роба стискає кулак.
 
-Його крамниця на ринку.”`);
+“Радій. Його крамниця на ринку. Усміхається так, ніби світ йому винен.”
+
+Він замовкає.
+
+“Якщо підеш до нього — не вір кожному слову.”`);
 }
 
 function hurtRoba() {
   player.relations.roba -= 15;
+  remember("Ти сказав Робі, що його біда — не твоя проблема.");
 
-  remember("Ти сказав Робі, що це не твоя проблема.");
+  say(`Роба опускає очі.
 
-  say(`Роба мовчки повертається до горна.
+На мить здається, що він хоче відповісти, але він лише повертається до горна.
 
 “Тоді не витрачай мій час.”`);
 }
 
 function doctorJob() {
-  player.gold += 4;
+  player.relations.doctor += 2;
   player.energy -= 15;
-
+  player.gold += 4;
   gainXp(6);
+  remember("Ти виконав дрібне доручення лікаря і заробив кілька монет.");
 
-  remember("Ти виконав дрібне доручення лікаря.");
+  say(`Лікар дає тобі дрібне доручення.
 
-  say(`“Робота є завжди.”
+“Робота є завжди. Але не кожна робота рятує чиєсь життя.”
 
-Ти заробляєш кілька монет.`);
+Ти заробляєш кілька монет. Думка про срібні трави не зникає.`);
 }
 
 function gatherHerbs() {
   player.energy -= 30;
   player.health -= 10;
-
   player.flags.savedDaughter = true;
   player.world.daughter = "врятована";
+  player.world.roba = "поступово відновлюється";
+  player.world.radiy = "втрачає найбільшого клієнта";
   player.relations.roba += 30;
-
+  player.relations.doctor += 10;
   gainXp(35);
-
-  remember("Ти здобув срібні трави.");
+  remember("Ти здобув срібні трави в Чорному Яру. Донька Роби отримала шанс.");
 
   move("blacksmith");
 }
 
 function acceptRobaSword() {
   player.flags.robaSwordTaken = true;
-
-  remember("Роба подарував тобі меч.");
-
+  player.relations.roba += 10;
+  gainXp(30);
+  remember("Роба подарував тобі добрий меч за порятунок доньки.");
   triggerRadiyArrest();
 
-  say(`Роба кладе меч перед тобою.
+  say(`Роба знімає зі стіни меч.
+
+“Я знайшов іншого постачальника. Хороший метал.”
+
+Він кладе меч перед тобою.
 
 “Це для тебе.”`);
 }
@@ -554,25 +486,29 @@ function buyFoodRadiy() {
   player.gold -= 3;
   player.relations.radiy += 8;
   player.flags.helpedRadiySmall = true;
+  remember("Ти купив їжу в Радія. Маленька монета на великий викуп.");
 
-  remember("Ти купив їжу у Радія.");
+  say(`Радій загортає їжу швидше, ніж треба.
 
-  say(`“Дякую.”
+“Дякую. Це дрібниця, я знаю.”
 
-Радій стискає монети в руці.
+Він дивиться на монети.
 
-“Іноді людина тримається саме на дрібницях.”`);
+“Але іноді людина тримається саме на дрібницях.”`);
 }
 
 function askRoomRadiy() {
   player.relations.radiy += 5;
   player.flags.helpedRadiySmall = true;
+  remember("Ти спитав у Радія про кімнату, знаючи, що він має з цього відсоток.");
 
-  remember("Ти спитав Радія про кімнату.");
+  say(`Радій трохи оживає.
 
-  say(`“Є кімната над таверною.”
+“Є кімната над таверною. Не найкраща, але суха.”
 
-Радій трохи оживає.`);
+Він дивиться на тебе уважніше.
+
+“Скажеш, що від мене.”`);
 }
 
 function triggerRadiyArrest() {
@@ -580,33 +516,38 @@ function triggerRadiyArrest() {
 
   player.flags.radiyArrested = true;
   player.flags.canTakeShop = true;
-
   player.world.radiy = "арештований";
   player.world.brother = "не врятований";
   player.world.economy = "тріщить";
-
-  remember("Радія забрала варта.");
+  remember("Радія забрала варта. Його брат так і не був викуплений.");
 }
 
 function helpRadiyAfterArrest() {
   player.relations.guard -= 6;
   player.suspicion += 6;
+  remember("Ти спробував втрутитись після арешту Радія.");
 
-  remember("Ти спробував втрутитись.");
+  say(`Ти робиш крок уперед.
 
-  say(`Вартовий кладе руку на меч.
+Один із вартових кладе руку на руківʼя меча.
 
-“Не твоя справа.”`);
+“Не твоя справа.”
+
+І ти розумієш: допомогти можна. Але не тут. Не зараз. І точно не без наслідків.`);
 }
 
 function takeShop() {
   player.flags.ownsShop = true;
+  player.world.shopPrices = "звичайні";
+  remember("Ти вирішив спробувати зайняти місце Радія.");
 
-  remember("Ти вирішив зайняти місце Радія.");
+  say(`Ти заходиш за прилавок.
 
-  say(`Ти стаєш за прилавок.
+Рахунки ще лежать на столі. Деякі плями чорнила не висохли.
 
-Каравел не питає, чи ти готовий.`);
+Каравел не питає, чи ти готовий.
+
+Він просто звільнив місце.`);
 }
 
 function setShopPrices(price) {
@@ -614,12 +555,15 @@ function setShopPrices(price) {
 
   if (price === "високі") {
     player.gold += 12;
-    player.relations.roba -= 5;
     player.suspicion += 4;
+    player.relations.roba -= 5;
+    remember("Ти підняв ціни в крамниці.");
 
-    remember("Ти підняв ціни.");
+    say(`Наступного дня людей менше.
 
-    say(`Людей стало менше.
+Один чоловік бере мішок зерна, дивиться на ціну і мовчки кладе назад.
+
+Роба, проходячи повз, кидає коротко:
 
 “Ти швидко вчишся бути схожим на нього.”`);
     return;
@@ -628,132 +572,61 @@ function setShopPrices(price) {
   if (price === "низькі") {
     player.gold += 2;
     player.relations.guard -= 2;
-
-    remember("Ти знизив ціни.");
+    remember("Ти знизив ціни, щоб залучити людей.");
 
     say(`Людей стало більше.
 
-Але варта починає дивитись на тебе уважніше.`);
+Хтось навіть дякує тобі.
+
+Але ввечері біля дверей зупиняється вартовий.
+
+“Дивні ціни. Дуже дивні. Сподіваюсь, товар не крадений.”`);
     return;
   }
 
   player.gold += 6;
+  remember("Ти вирішив тримати звичайні ціни.");
 
-  remember("Ти залишив звичайні ціни.");
+  say(`Люди заходять обережно, але купують.
 
-  say(`Ніхто не дякує.
+Ніхто не дякує.
+Ніхто не проклинає.
 
-Ніхто не скаржиться.
-
-Можливо, це вже перемога.`);
-}
-
-function sleepAtTavern() {
-  if (player.gold < 5) {
-    say(`У тебе недостатньо золота.`);
-    return;
-  }
-
-  player.gold -= 5;
-  player.energy = player.maxEnergy;
-  player.health = Math.min(player.maxHealth, player.health + 15);
-  player.world.hunger = Math.max(0, player.world.hunger - 40);
-
-  passTime(2);
-
-  remember("Ти переночував у таверні.");
-
-  say(`Ти спиш у маленькій кімнаті над таверною.
-
-Вперше за довгий час — у теплі.`);
-}
-
-function nightWalk() {
-  passTime();
-
-  const roll = Math.random();
-
-  if (roll < 0.35) {
-    const stolen = Math.min(player.gold, 6);
-
-    player.gold -= stolen;
-    player.health -= 10;
-
-    remember(`Тебе пограбували. Втрачено ${stolen} золота.`);
-
-    say(`Темрява Каравела не любить самотніх.`);
-    return;
-  }
-
-  if (roll < 0.65) {
-    gainXp(5);
-
-    remember("Ти пережив небезпечну ніч.");
-
-    say(`Ти блукаєш нічними вулицями.
-
-Сьогодні ніч вирішила тебе не чіпати.`);
-    return;
-  }
-
-  player.relations.guard += 2;
-
-  say(`Варта зупиняє тебе серед площі.
-
-“Небезпечний час для прогулянок.”`);
+Можливо, для першого дня це вже перемога.`);
 }
 
 function wanderSquare() {
   passTime();
 
-  if (
-    !player.flags.savedDaughter &&
-    player.world.day >= 4 &&
-    !player.flags.daughterLost
-  ) {
+  if (!player.flags.savedDaughter && player.world.day >= 4 && !player.flags.daughterLost) {
     player.flags.daughterLost = true;
     player.flags.robaGone = true;
-
     player.world.daughter = "померла";
     player.world.roba = "зник";
+    remember("Роба продав кузню, але цього не вистачило. Його донька померла. Він поїхав із Каравела.");
 
-    remember("Роба втратив доньку й покинув Каравел.");
+    say(`Ти проходиш повз кузню і зупиняєшся.
 
-    say(`Кузня стоїть порожня.
+Там тихо.
 
-“Він поїхав...”`);
+Перехожий, якого ти питаєш про Робу, лише зітхає.
+
+“Ти ще не знаєш? Він продав кузню. Але грошей не вистачило. Дівчинка померла. А він... поїхав.”`);
     return;
   }
 
   say(`Ти проходишся площею.
 
-Каравел живе своїм життям.`);
+Каравел не пояснює себе. Він просто живе.
+
+Хтось сміється біля крамниці. Хтось свариться через ціну на зерно. Хтось мовчки несе воду.
+
+І десь між усім цим твої рішення вже пускають коріння.`);
 }
 
-function passTime(hours = 1) {
-  const times = ["morning", "day", "evening", "night"];
-
-  let currentIndex = times.indexOf(player.world.time);
-
-  if (currentIndex === -1) {
-    currentIndex = 0;
-    player.world.time = "morning";
-  }
-
-  currentIndex += hours;
-
-  while (currentIndex >= times.length) {
-    currentIndex -= times.length;
-    player.world.day += 1;
-    player.energy = Math.min(player.maxEnergy, player.energy + 20);
-    player.world.hunger += 20;
-  }
-
-  player.world.time = times[currentIndex];
-
-  if (player.world.hunger >= 80) {
-    player.health -= 5;
-  }
+function passTime() {
+  player.world.day += 1;
+  player.energy = Math.min(player.maxEnergy, player.energy + 20);
 
   if (!player.flags.savedDaughter && player.world.day >= 3) {
     player.world.daughter = "гірше";
@@ -774,7 +647,6 @@ function gainXp(amount) {
     player.maxEnergy += 5;
     player.health = player.maxHealth;
     player.energy = player.maxEnergy;
-
     remember("Ти став досвідченішим.");
   }
 }
@@ -782,7 +654,6 @@ function gainXp(amount) {
 function remember(text) {
   player.memory.unshift(text);
   player.memory = player.memory.slice(0, 80);
-
   saveGame(false);
 }
 
@@ -791,9 +662,6 @@ function normalize() {
   player.energy = clamp(player.energy, 0, player.maxEnergy);
   player.gold = Math.max(0, player.gold);
   player.suspicion = clamp(player.suspicion, 0, 100);
-
-  if (!player.world.time) player.world.time = "morning";
-  if (typeof player.world.hunger !== "number") player.world.hunger = 0;
 }
 
 function clamp(value, min, max) {
@@ -823,7 +691,6 @@ function render() {
 
   location.actions().forEach((a) => {
     if (!a.condition()) return;
-
     addButton(a.text, () => {
       a.fn();
       normalize();
@@ -838,37 +705,17 @@ function render() {
 
 function addButton(text, fn) {
   const button = document.createElement("button");
-
   button.textContent = text;
-
   button.addEventListener("click", fn);
-
   actionsBox.appendChild(button);
 }
 
 function renderPeople() {
   peopleBox.innerHTML = `
-    <div class="person">
-      <b>Роба</b><br>
-      коваль<br>
-      ${relationText(player.relations.roba)}
-    </div>
-
-    <div class="person">
-      <b>Радій</b><br>
-      купець<br>
-      ${relationText(player.relations.radiy)}
-    </div>
-
-    <div class="person">
-      <b>Лікар</b><br>
-      ${relationText(player.relations.doctor)}
-    </div>
-
-    <div class="person">
-      <b>Варта</b><br>
-      ${relationText(player.relations.guard)}
-    </div>
+    <div class="person"><b>Роба</b><br>коваль<br>${relationText(player.relations.roba)}<br><span class="muted">${player.world.roba}</span></div>
+    <div class="person"><b>Радій</b><br>купець<br>${relationText(player.relations.radiy)}<br><span class="muted">${player.world.radiy}</span></div>
+    <div class="person"><b>Старий лікар</b><br>${relationText(player.relations.doctor)}</div>
+    <div class="person"><b>Варта</b><br>${relationText(player.relations.guard)}</div>
   `;
 }
 
@@ -881,31 +728,12 @@ function relationText(value) {
 }
 
 function renderWorld() {
-  const timeNames = {
-    morning: "ранок",
-    day: "день",
-    evening: "вечір",
-    night: "ніч"
-  };
-
-  let hungerText = "ситий";
-
-  if (player.world.hunger >= 30) hungerText = "голодний";
-  if (player.world.hunger >= 60) hungerText = "дуже голодний";
-  if (player.world.hunger >= 85) hungerText = "виснажений голодом";
-
   worldBox.innerHTML = `
     <div class="world-item">День: ${player.world.day}</div>
-    <div class="world-item">Час: ${timeNames[player.world.time] || "ранок"}</div>
-    <div class="world-item">Стан: ${hungerText}</div>
     <div class="world-item">Донька Роби: ${player.world.daughter}</div>
     <div class="world-item">Брат Радія: ${player.world.brother}</div>
     <div class="world-item">Економіка: ${player.world.economy}</div>
-    ${
-      player.flags.ownsShop
-        ? `<div class="world-item">Твоя крамниця: ціни ${player.world.shopPrices}</div>`
-        : ""
-    }
+    ${player.flags.ownsShop ? `<div class="world-item">Твоя крамниця: ціни ${player.world.shopPrices}</div>` : ""}
   `;
 }
 
@@ -953,16 +781,18 @@ async function init() {
   if (!result.ok) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-
     authToken = null;
     currentUser = null;
-
     showAuth();
     return;
   }
 
   if (result.save) {
-    player = mergeSave(result.save);
+    player = {
+      ...createNewPlayer(),
+      ...result.save
+    };
+
     showGame();
     render();
   } else {
@@ -974,13 +804,10 @@ async function register() {
   const username = loginInput.value.trim();
   const password = passwordInput.value.trim();
 
-  const result = await apiPost("/api/register", {
-    username,
-    password
-  });
+  const result = await apiPost("/api/register", { username, password });
 
   if (!result.ok) {
-    authMessage.textContent = result.error || "Помилка";
+    authMessage.textContent = result.error || "Помилка реєстрації";
     return;
   }
 
@@ -991,7 +818,6 @@ async function register() {
   localStorage.setItem(USER_KEY, currentUser);
 
   player = createNewPlayer();
-
   showStart();
 }
 
@@ -999,13 +825,10 @@ async function login() {
   const username = loginInput.value.trim();
   const password = passwordInput.value.trim();
 
-  const result = await apiPost("/api/login", {
-    username,
-    password
-  });
+  const result = await apiPost("/api/login", { username, password });
 
   if (!result.ok) {
-    authMessage.textContent = result.error || "Помилка";
+    authMessage.textContent = result.error || "Помилка входу";
     return;
   }
 
@@ -1016,7 +839,10 @@ async function login() {
   localStorage.setItem(USER_KEY, currentUser);
 
   if (result.save) {
-    player = mergeSave(result.save);
+    player = {
+      ...createNewPlayer(),
+      ...result.save
+    };
     showGame();
     render();
   } else {
@@ -1027,7 +853,6 @@ async function login() {
 
 function logout() {
   apiPost("/api/logout", {});
-
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
 
@@ -1047,9 +872,7 @@ function startGame() {
   }
 
   player = createNewPlayer(name, backgroundSelect.value);
-
   remember("Ти прокинувся на площі Каравела.");
-
   showGame();
   saveGame(false);
   render();
@@ -1082,9 +905,7 @@ function showGame() {
 async function saveGame(showLog = true) {
   if (!authToken) return;
 
-  const result = await apiPost("/api/save", {
-    save: player
-  });
+  const result = await apiPost("/api/save", { save: player });
 
   if (!result.ok) return;
 
@@ -1097,9 +918,7 @@ async function saveGame(showLog = true) {
 async function apiGetSave() {
   try {
     const response = await fetch("/api/save", {
-      headers: {
-        Authorization: `Bearer ${authToken}`
-      }
+      headers: { Authorization: `Bearer ${authToken}` }
     });
 
     return await response.json();
@@ -1112,24 +931,15 @@ async function apiPost(url, data) {
   try {
     const response = await fetch(url, {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
-        ...(authToken
-          ? {
-              Authorization: `Bearer ${authToken}`
-            }
-          : {})
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
       },
-
       body: JSON.stringify(data)
     });
 
     return await response.json();
   } catch {
-    return {
-      ok: false,
-      error: "Сервер недоступний"
-    };
+    return { ok: false, error: "Сервер недоступний" };
   }
 }
